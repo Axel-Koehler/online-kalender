@@ -62,6 +62,7 @@
       </main>
 
       <footer class="footer-actions">
+        <span class="sync-status" id="sync-status">Lokal</span>
         <button class="quiet-button" id="export-button" type="button">Export</button>
         <label class="quiet-button file-button" for="import-input">Import</label>
         <input id="import-input" type="file" accept="application/json,.json">
@@ -116,6 +117,7 @@
       </form>
     </dialog>
 
+    <script src="supabase-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

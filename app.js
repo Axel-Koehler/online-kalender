@@ -5,6 +5,8 @@ const STORAGE_KEY = "online-kalender-events-v1";
 const AUTH_KEY = "online-kalender-auth-v1";
 const LOGIN_USER = "Axel";
 const LOGIN_PASSWORD_SHA256 = "3eeb46f8a8a9e028b31775b5dfc1671a74d612154280e9c9ba18ae1ba9e4fd21";
+const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const WEEKDAYS_LONG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
@@ -26,8 +28,13 @@ const MONTHS = [
 const state = {
   view: "week",
   anchorDate: startOfDay(new Date()),
-  events: loadEvents()
+  events: loadEvents(),
+  currentUser: null,
+  isLoadingRemote: false
 };
+
+let supabaseClient = null;
+let realtimeChannel = null;
 
 const elements = {
   appShell: document.querySelector("#app-shell"),
@@ -46,6 +53,7 @@ const elements = {
   todayButton: document.querySelector("#today-button"),
   newEventButton: document.querySelector("#new-event-button"),
   logoutButton: document.querySelector("#logout-button"),
+  syncStatus: document.querySelector("#sync-status"),
   exportButton: document.querySelector("#export-button"),
   importInput: document.querySelector("#import-input"),
   dialog: document.querySelector("#event-dialog"),
@@ -63,12 +71,96 @@ const elements = {
   cancelButton: document.querySelector("#cancel-event-button")
 };
 
+function isSupabaseConfigured() {
+  return Boolean(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey);
+}
+
+function useRemoteStorage() {
+  return Boolean(supabaseClient && state.currentUser);
+}
+
+function updateSyncStatus(message = "") {
+  if (!elements.syncStatus) return;
+  if (message) {
+    elements.syncStatus.textContent = message;
+    return;
+  }
+
+  if (useRemoteStorage()) {
+    elements.syncStatus.textContent = "Supabase synchronisiert";
+  } else if (isSupabaseConfigured()) {
+    elements.syncStatus.textContent = "Supabase bereit";
+  } else {
+    elements.syncStatus.textContent = "Lokal";
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.append(script);
+  });
+}
+
+async function getSupabaseClient() {
+  if (!isSupabaseConfigured()) return null;
+  if (supabaseClient) return supabaseClient;
+
+  if (!window.supabase) {
+    await loadScript(SUPABASE_CDN);
+  }
+
+  supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  return supabaseClient;
+}
+
+function emailForUsername(username) {
+  const configuredUsers = SUPABASE_CONFIG.loginUsers || {};
+  if (configuredUsers[username]) return configuredUsers[username];
+  return username.includes("@") ? username : "";
+}
+
+function fromSupabaseRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.event_date,
+    start: String(row.start_time).slice(0, 5),
+    end: String(row.end_time).slice(0, 5),
+    note: row.note || "",
+    color: row.color || COLORS[0]
+  };
+}
+
+function toSupabaseRow(event) {
+  return {
+    id: event.id,
+    user_id: state.currentUser.id,
+    title: event.title,
+    event_date: event.date,
+    start_time: event.start,
+    end_time: event.end,
+    note: event.note || "",
+    color: event.color || colorForEvent(event)
+  };
+}
+
 function isAuthenticated() {
   return localStorage.getItem(AUTH_KEY) === "true";
 }
 
 function setAuthenticated(authenticated) {
-  if (authenticated) {
+  if (!isSupabaseConfigured() && authenticated) {
     localStorage.setItem(AUTH_KEY, "true");
   } else {
     localStorage.removeItem(AUTH_KEY);
@@ -76,6 +168,7 @@ function setAuthenticated(authenticated) {
 
   elements.authScreen.hidden = authenticated;
   elements.appShell.hidden = !authenticated;
+  updateSyncStatus();
 }
 
 async function sha256(value) {
@@ -91,10 +184,38 @@ async function sha256(value) {
 async function handleLogin(event) {
   event.preventDefault();
   elements.loginError.textContent = "";
+  updateSyncStatus("Anmeldung...");
 
   try {
     const username = elements.loginUsername.value.trim();
-    const passwordHash = await sha256(elements.loginPassword.value);
+    const password = elements.loginPassword.value;
+
+    if (isSupabaseConfigured()) {
+      const client = await getSupabaseClient();
+      const email = emailForUsername(username);
+
+      if (!email) {
+        elements.loginError.textContent = "Benutzername ist in supabase-config.js nicht hinterlegt.";
+        updateSyncStatus();
+        return;
+      }
+
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) {
+        elements.loginError.textContent = "Benutzername oder Passwort ist falsch.";
+        updateSyncStatus();
+        return;
+      }
+
+      state.currentUser = data.user;
+      elements.loginPassword.value = "";
+      setAuthenticated(true);
+      await loadRemoteEvents();
+      subscribeToRemoteEvents();
+      return;
+    }
+
+    const passwordHash = await sha256(password);
 
     if (username === LOGIN_USER && passwordHash === LOGIN_PASSWORD_SHA256) {
       elements.loginPassword.value = "";
@@ -104,8 +225,10 @@ async function handleLogin(event) {
     }
 
     elements.loginError.textContent = "Benutzername oder Passwort ist falsch.";
+    updateSyncStatus();
   } catch {
-    elements.loginError.textContent = "Login ist nur ueber eine sichere HTTP/HTTPS-Seite moeglich.";
+    elements.loginError.textContent = "Login ist nur über eine sichere HTTP/HTTPS-Seite möglich.";
+    updateSyncStatus("Supabase nicht erreichbar");
   }
 }
 
@@ -121,6 +244,114 @@ function loadEvents() {
 function saveEvents() {
   state.events.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+}
+
+async function loadRemoteEvents() {
+  if (!useRemoteStorage() || state.isLoadingRemote) return;
+  state.isLoadingRemote = true;
+  updateSyncStatus("Synchronisiere...");
+
+  const { data, error } = await supabaseClient
+    .from("calendar_events")
+    .select("id,title,event_date,start_time,end_time,note,color")
+    .order("event_date", { ascending: true })
+    .order("start_time", { ascending: true });
+
+  state.isLoadingRemote = false;
+
+  if (error) {
+    updateSyncStatus("Supabase Fehler");
+    console.error(error);
+    return;
+  }
+
+  state.events = data.map(fromSupabaseRow);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+  updateSyncStatus();
+  render();
+}
+
+async function saveRemoteEvent(event) {
+  if (!useRemoteStorage()) return null;
+
+  const { data, error } = await supabaseClient
+    .from("calendar_events")
+    .upsert(toSupabaseRow(event))
+    .select("id,title,event_date,start_time,end_time,note,color")
+    .single();
+
+  if (error) {
+    updateSyncStatus("Speichern fehlgeschlagen");
+    console.error(error);
+    throw error;
+  }
+
+  updateSyncStatus();
+  return fromSupabaseRow(data);
+}
+
+async function deleteRemoteEvent(id) {
+  if (!useRemoteStorage()) return;
+
+  const { error } = await supabaseClient
+    .from("calendar_events")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    updateSyncStatus("Löschen fehlgeschlagen");
+    console.error(error);
+    throw error;
+  }
+
+  updateSyncStatus();
+}
+
+async function replaceRemoteEvents(events) {
+  if (!useRemoteStorage()) return;
+
+  const { error: deleteError } = await supabaseClient.from("calendar_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (deleteError) {
+    updateSyncStatus("Import fehlgeschlagen");
+    console.error(deleteError);
+    throw deleteError;
+  }
+
+  if (!events.length) return;
+
+  const { error: insertError } = await supabaseClient.from("calendar_events").insert(events.map(toSupabaseRow));
+  if (insertError) {
+    updateSyncStatus("Import fehlgeschlagen");
+    console.error(insertError);
+    throw insertError;
+  }
+
+  updateSyncStatus();
+}
+
+function subscribeToRemoteEvents() {
+  if (!useRemoteStorage() || realtimeChannel) return;
+
+  realtimeChannel = supabaseClient
+    .channel("calendar_events_changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "calendar_events",
+        filter: `user_id=eq.${state.currentUser.id}`
+      },
+      () => loadRemoteEvents()
+    )
+    .subscribe();
+}
+
+function unsubscribeFromRemoteEvents() {
+  if (realtimeChannel && supabaseClient) {
+    supabaseClient.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = null;
 }
 
 function startOfDay(date) {
@@ -144,6 +375,10 @@ function dateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || "");
 }
 
 function fromDateKey(key) {
@@ -474,7 +709,7 @@ function closeDialog() {
   elements.dialog.close();
 }
 
-function upsertEvent(formEvent) {
+async function upsertEvent(formEvent) {
   formEvent.preventDefault();
   const id = elements.eventId.value || crypto.randomUUID();
   const title = elements.eventTitle.value.trim();
@@ -500,14 +735,29 @@ function upsertEvent(formEvent) {
     color: existing?.color || COLORS[state.events.length % COLORS.length]
   };
 
+  let savedEvent = nextEvent;
+  if (useRemoteStorage()) {
+    try {
+      updateSyncStatus("Speichere...");
+      savedEvent = await saveRemoteEvent(nextEvent);
+    } catch {
+      elements.formError.textContent = "Termin konnte nicht in Supabase gespeichert werden.";
+      return;
+    }
+  }
+
   if (existing) {
-    Object.assign(existing, nextEvent);
+    Object.assign(existing, savedEvent);
   } else {
-    state.events.push(nextEvent);
+    state.events.push(savedEvent);
   }
 
   state.anchorDate = fromDateKey(date);
-  saveEvents();
+  if (!useRemoteStorage()) {
+    saveEvents();
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+  }
   closeDialog();
   render();
 }
@@ -527,12 +777,27 @@ function validateEvent(event) {
   return "";
 }
 
-function deleteSelectedEvent() {
+async function deleteSelectedEvent() {
   const id = elements.eventId.value;
   if (!id) return;
   if (!confirm("Termin löschen?")) return;
+
+  if (useRemoteStorage()) {
+    try {
+      updateSyncStatus("Lösche...");
+      await deleteRemoteEvent(id);
+    } catch {
+      elements.formError.textContent = "Termin konnte nicht in Supabase gelöscht werden.";
+      return;
+    }
+  }
+
   state.events = state.events.filter((event) => event.id !== id);
-  saveEvents();
+  if (!useRemoteStorage()) {
+    saveEvents();
+  } else {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+  }
   closeDialog();
   render();
 }
@@ -557,7 +822,7 @@ function exportEvents() {
 function importEvents(file) {
   if (!file) return;
   const reader = new FileReader();
-  reader.addEventListener("load", () => {
+  reader.addEventListener("load", async () => {
     try {
       const parsed = JSON.parse(String(reader.result || "{}"));
       const incoming = Array.isArray(parsed) ? parsed : parsed.events;
@@ -565,7 +830,7 @@ function importEvents(file) {
       const sanitized = incoming
         .filter((event) => validateImportedEvent(event))
         .map((event) => ({
-          id: String(event.id || crypto.randomUUID()),
+          id: isUuid(event.id) ? String(event.id) : crypto.randomUUID(),
           title: String(event.title),
           date: String(event.date),
           start: String(event.start),
@@ -573,6 +838,12 @@ function importEvents(file) {
           note: String(event.note || ""),
           color: COLORS.includes(event.color) ? event.color : COLORS[0]
         }));
+
+      if (useRemoteStorage()) {
+        updateSyncStatus("Importiere...");
+        await replaceRemoteEvents(sanitized);
+      }
+
       state.events = sanitized;
       saveEvents();
       render();
@@ -610,6 +881,43 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+async function logout() {
+  unsubscribeFromRemoteEvents();
+
+  if (supabaseClient) {
+    await supabaseClient.auth.signOut();
+  }
+
+  state.currentUser = null;
+  state.events = loadEvents();
+  setAuthenticated(false);
+  render();
+}
+
+async function initApp() {
+  updateSyncStatus();
+
+  if (isSupabaseConfigured()) {
+    try {
+      const client = await getSupabaseClient();
+      const { data } = await client.auth.getSession();
+      state.currentUser = data.session?.user || null;
+
+      if (state.currentUser) {
+        setAuthenticated(true);
+        await loadRemoteEvents();
+        subscribeToRemoteEvents();
+        return;
+      }
+    } catch {
+      updateSyncStatus("Supabase nicht erreichbar");
+    }
+  }
+
+  setAuthenticated(isSupabaseConfigured() ? false : isAuthenticated());
+  render();
+}
+
 elements.tabs.forEach((tab) => {
   tab.addEventListener("click", () => setView(tab.dataset.view));
 });
@@ -621,13 +929,17 @@ elements.todayButton.addEventListener("click", () => {
 });
 elements.newEventButton.addEventListener("click", () => openEventDialog({ date: dateKey(state.anchorDate), start: "09:00" }));
 elements.loginForm.addEventListener("submit", handleLogin);
-elements.logoutButton.addEventListener("click", () => setAuthenticated(false));
+elements.logoutButton.addEventListener("click", logout);
 elements.form.addEventListener("submit", upsertEvent);
 elements.deleteButton.addEventListener("click", deleteSelectedEvent);
 elements.closeDialogButton.addEventListener("click", closeDialog);
 elements.cancelButton.addEventListener("click", closeDialog);
 elements.exportButton.addEventListener("click", exportEvents);
 elements.importInput.addEventListener("change", () => importEvents(elements.importInput.files[0]));
+window.addEventListener("focus", () => {
+  if (useRemoteStorage()) {
+    loadRemoteEvents();
+  }
+});
 
-setAuthenticated(isAuthenticated());
-render();
+initApp();

@@ -9,6 +9,7 @@ Diese Kalender-App laeuft direkt im Browser und enthaelt:
 - Termin anlegen, bearbeiten und loeschen
 - Export und Import als JSON-Datei
 - responsive Bedienung fuer PC, iPad und iPhone
+- optionale Supabase-Synchronisierung fuer mehrere Geraete
 
 ## Lokal oeffnen
 
@@ -26,21 +27,48 @@ Die Datei `index.html` im gleichen Ordner kann direkt im Browser geoeffnet werde
 
 ## Wichtig zur Synchronisierung
 
-Die aktuelle Version speichert Termine lokal im jeweiligen Browser. Damit PC, iPad
-und iPhone automatisch denselben Kalender sehen, muss die App online gehostet und
-mit einer echten Datenbank oder einem Kalenderdienst verbunden werden.
+Ohne Supabase-Konfiguration speichert die App Termine lokal im jeweiligen
+Browser. Sobald Supabase eingerichtet ist, werden Termine in der Tabelle
+`calendar_events` gespeichert und nach dem Login auf PC, iPad und iPhone
+synchronisiert.
 
-GitHub Pages hostet HTML, CSS und JavaScript statisch. Es fuehrt keinen sicheren
-Servercode aus und ist deshalb nicht als geschuetzte Kalender-Datenbank geeignet.
+GitHub Pages hostet HTML, CSS und JavaScript statisch. Die Datenbank und der
+echte Login laufen deshalb ueber Supabase.
 
-Geeignete naechste Optionen:
+## Supabase einrichten
 
-- Supabase oder Firebase fuer eine eigene Kalender-Datenbank
-- Google Calendar oder iCloud Kalender als angebundener Kalenderdienst
-- Sites/Cloudflare mit D1-Datenbank fuer eine gehostete Web-App
+1. In Supabase ein neues Projekt erstellen.
+2. In Supabase unter `SQL Editor` den Inhalt von `supabase/schema.sql`
+   ausfuehren.
+3. In Supabase unter `Authentication` -> `Users` einen Benutzer anlegen:
+   - E-Mail: `axel@example.com` oder eine eigene echte E-Mail
+   - Passwort: `416114`
+4. Falls du eine andere E-Mail verwendest, in `supabase-config.js` den Eintrag
+   `Axel` auf diese E-Mail setzen.
+5. In Supabase unter `Project Settings` -> `API` diese Werte kopieren:
+   - `Project URL`
+   - `anon public` Key
+6. Die Werte in `supabase-config.js` eintragen:
+
+```js
+window.KALENDER_SUPABASE_CONFIG = {
+  url: "https://DEIN-PROJEKT.supabase.co",
+  anonKey: "DEIN-ANON-PUBLIC-KEY",
+  loginUsers: {
+    Axel: "axel@example.com"
+  }
+};
+```
+
+Danach die geaenderte `supabase-config.js` nach GitHub pushen.
+
+Optional fuer Sofort-Aktualisierung zwischen offenen Browserfenstern:
+In Supabase Realtime fuer die Tabelle `calendar_events` aktivieren. Die App
+laedt Termine aber auch beim Speichern und beim erneuten Fokussieren des
+Browserfensters nach.
 
 ## Login-Hinweis
 
-Das Passwort wird in der App nicht als Klartext gespeichert, sondern als Hash
-geprueft. Bei rein statischem Hosting ist das trotzdem keine vollwertige
-Sicherheitsbarriere, weil der gesamte Frontend-Code im Browser sichtbar ist.
+Wenn Supabase konfiguriert ist, prueft Supabase Auth das Passwort. Der
+Frontend-Code enthaelt dann kein Passwort. Ohne Supabase-Konfiguration gibt es
+weiterhin einen lokalen Fallback-Login fuer Tests.

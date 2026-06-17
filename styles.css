@@ -490,9 +490,17 @@ h1 {
 
 .footer-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding: 10px clamp(14px, 4vw, 42px) 18px;
+}
+
+.sync-status {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 #import-input {
