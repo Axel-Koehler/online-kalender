@@ -3,7 +3,7 @@
   "short_name": "Kalender",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f3ee",
-  "theme_color": "#126d75",
+  "background_color": "#070812",
+  "theme_color": "#00d9ff",
   "description": "Kalender mit Wochen-, Monats- und Jahresansicht."
 }
