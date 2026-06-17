@@ -3,6 +3,7 @@ create table if not exists public.calendar_events (
   user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
   event_date date not null,
+  end_date date not null,
   start_time time not null,
   end_time time not null,
   note text not null default '',
@@ -10,6 +11,16 @@ create table if not exists public.calendar_events (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.calendar_events
+add column if not exists end_date date;
+
+update public.calendar_events
+set end_date = event_date
+where end_date is null;
+
+alter table public.calendar_events
+alter column end_date set not null;
 
 alter table public.calendar_events enable row level security;
 
@@ -58,5 +69,6 @@ before update on public.calendar_events
 for each row
 execute function public.set_calendar_events_updated_at();
 
-create index if not exists calendar_events_user_date_idx
-on public.calendar_events (user_id, event_date, start_time);
+drop index if exists public.calendar_events_user_date_idx;
+create index calendar_events_user_date_idx
+on public.calendar_events (user_id, event_date, end_date, start_time);

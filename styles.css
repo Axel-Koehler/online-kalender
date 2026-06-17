@@ -501,6 +501,8 @@ h1 {
 }
 
 .calendar-event {
+  display: grid;
+  align-content: start;
   border: 1px solid var(--event-color);
   border-left: 4px solid var(--event-color);
   border-radius: 0;
@@ -538,6 +540,13 @@ h1 {
   font-size: 0.72rem;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.calendar-event.is-multi-day {
+  border-top-color: var(--yellow);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--event-color) 36%, transparent 64%),
+    inset 0 0 12px rgba(248, 255, 19, 0.12);
 }
 
 .month-header,
@@ -734,7 +743,7 @@ h1 {
 
 .event-dialog {
   position: relative;
-  width: min(560px, calc(100vw - 28px));
+  width: min(680px, calc(100vw - 28px));
   border: 1px solid var(--line-strong);
   border-radius: 0;
   padding: 0;
@@ -815,7 +824,7 @@ h1 {
 
 .field-grid {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: 1.15fr 1.15fr 1fr 1fr;
   gap: 10px;
 }
 

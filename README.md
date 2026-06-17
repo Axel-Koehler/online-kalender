@@ -7,6 +7,7 @@ Diese Kalender-App laeuft direkt im Browser und enthaelt:
 - Jahresansicht
 - Login mit Benutzername und Passwort
 - Termin anlegen, bearbeiten und loeschen
+- Termine ueber mehrere Tage
 - Export und Import als JSON-Datei
 - responsive Bedienung fuer PC, iPad und iPhone
 - optionale Supabase-Synchronisierung fuer mehrere Geraete
@@ -39,7 +40,8 @@ echte Login laufen deshalb ueber Supabase.
 
 1. In Supabase ein neues Projekt erstellen.
 2. In Supabase unter `SQL Editor` den Inhalt von `supabase/schema.sql`
-   ausfuehren.
+   ausfuehren. Bei bestehenden Projekten das Schema erneut ausfuehren, damit
+   die Spalte `end_date` fuer mehrtaegige Termine angelegt wird.
 3. In Supabase unter `Authentication` -> `Users` einen Benutzer anlegen:
    - E-Mail: `axel@example.com` oder eine eigene echte E-Mail
    - Passwort: `416114`

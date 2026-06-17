@@ -7,6 +7,9 @@ const LOGIN_USER = "Axel";
 const LOGIN_PASSWORD_SHA256 = "3eeb46f8a8a9e028b31775b5dfc1671a74d612154280e9c9ba18ae1ba9e4fd21";
 const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
+const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
+const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
+const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const WEEKDAYS_LONG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
@@ -35,6 +38,7 @@ const state = {
 
 let supabaseClient = null;
 let realtimeChannel = null;
+let remoteSupportsEndDate = null;
 
 const elements = {
   appShell: document.querySelector("#app-shell"),
@@ -62,6 +66,7 @@ const elements = {
   eventId: document.querySelector("#event-id"),
   eventTitle: document.querySelector("#event-title"),
   eventDate: document.querySelector("#event-date"),
+  eventEndDate: document.querySelector("#event-end-date"),
   eventStart: document.querySelector("#event-start"),
   eventEnd: document.querySelector("#event-end"),
   eventNote: document.querySelector("#event-note"),
@@ -130,29 +135,65 @@ function emailForUsername(username) {
   return username.includes("@") ? username : "";
 }
 
+function isMissingEndDateColumn(error) {
+  const message = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`;
+  return message.includes("end_date") || message.includes("PGRST204") || message.includes("42703");
+}
+
+function unpackStoredNote(note) {
+  const cleanNote = String(note || "");
+  const match = cleanNote.match(END_DATE_NOTE_PATTERN);
+  if (!match) {
+    return { note: cleanNote, endDate: "" };
+  }
+
+  return {
+    note: cleanNote.replace(END_DATE_NOTE_PATTERN, ""),
+    endDate: match[1]
+  };
+}
+
+function packStoredNote(event, includeEndDateColumn) {
+  const cleanNote = String(event.note || "").replace(END_DATE_NOTE_PATTERN, "");
+  if (includeEndDateColumn || !isMultiDayEvent(event)) {
+    return cleanNote;
+  }
+
+  return `[[online-kalender:end_date=${getEventEndDate(event)}]]\n${cleanNote}`;
+}
+
 function fromSupabaseRow(row) {
+  const storedNote = unpackStoredNote(row.note);
+  const endDate = row.end_date || storedNote.endDate || row.event_date;
   return {
     id: row.id,
     title: row.title,
     date: row.event_date,
+    endDate,
     start: String(row.start_time).slice(0, 5),
     end: String(row.end_time).slice(0, 5),
-    note: row.note || "",
+    note: storedNote.note,
     color: row.color || COLORS[0]
   };
 }
 
-function toSupabaseRow(event) {
-  return {
+function toSupabaseRow(event, includeEndDateColumn = true) {
+  const row = {
     id: event.id,
     user_id: state.currentUser.id,
     title: event.title,
     event_date: event.date,
     start_time: event.start,
     end_time: event.end,
-    note: event.note || "",
+    note: packStoredNote(event, includeEndDateColumn),
     color: event.color || colorForEvent(event)
   };
+
+  if (includeEndDateColumn) {
+    row.end_date = getEventEndDate(event);
+  }
+
+  return row;
 }
 
 function isAuthenticated() {
@@ -235,14 +276,18 @@ async function handleLogin(event) {
 function loadEvents() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed
+          .map((event, index) => normalizeEvent(event, COLORS[index % COLORS.length]))
+          .filter((event) => validateImportedEvent(event))
+      : [];
   } catch {
     return [];
   }
 }
 
 function saveEvents() {
-  state.events.sort((a, b) => `${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+  state.events.sort((a, b) => `${a.date} ${a.start} ${getEventEndDate(a)}`.localeCompare(`${b.date} ${b.start} ${getEventEndDate(b)}`));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
 }
 
@@ -251,11 +296,23 @@ async function loadRemoteEvents() {
   state.isLoadingRemote = true;
   updateSyncStatus("Synchronisiere...");
 
-  const { data, error } = await supabaseClient
+  const selectColumns = remoteSupportsEndDate === false ? SUPABASE_COLUMNS_LEGACY : SUPABASE_COLUMNS;
+  let { data, error } = await supabaseClient
     .from("calendar_events")
-    .select("id,title,event_date,start_time,end_time,note,color")
+    .select(selectColumns)
     .order("event_date", { ascending: true })
     .order("start_time", { ascending: true });
+
+  if (error && remoteSupportsEndDate !== false && isMissingEndDateColumn(error)) {
+    remoteSupportsEndDate = false;
+    ({ data, error } = await supabaseClient
+      .from("calendar_events")
+      .select(SUPABASE_COLUMNS_LEGACY)
+      .order("event_date", { ascending: true })
+      .order("start_time", { ascending: true }));
+  } else if (!error) {
+    remoteSupportsEndDate = remoteSupportsEndDate !== false;
+  }
 
   state.isLoadingRemote = false;
 
@@ -265,7 +322,7 @@ async function loadRemoteEvents() {
     return;
   }
 
-  state.events = data.map(fromSupabaseRow);
+  state.events = data.map(fromSupabaseRow).map((event, index) => normalizeEvent(event, COLORS[index % COLORS.length]));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
   updateSyncStatus();
   render();
@@ -274,11 +331,24 @@ async function loadRemoteEvents() {
 async function saveRemoteEvent(event) {
   if (!useRemoteStorage()) return null;
 
-  const { data, error } = await supabaseClient
+  let includeEndDateColumn = remoteSupportsEndDate !== false;
+  let { data, error } = await supabaseClient
     .from("calendar_events")
-    .upsert(toSupabaseRow(event))
-    .select("id,title,event_date,start_time,end_time,note,color")
+    .upsert(toSupabaseRow(event, includeEndDateColumn))
+    .select(includeEndDateColumn ? SUPABASE_COLUMNS : SUPABASE_COLUMNS_LEGACY)
     .single();
+
+  if (error && includeEndDateColumn && isMissingEndDateColumn(error)) {
+    remoteSupportsEndDate = false;
+    includeEndDateColumn = false;
+    ({ data, error } = await supabaseClient
+      .from("calendar_events")
+      .upsert(toSupabaseRow(event, false))
+      .select(SUPABASE_COLUMNS_LEGACY)
+      .single());
+  } else if (!error) {
+    remoteSupportsEndDate = includeEndDateColumn;
+  }
 
   if (error) {
     updateSyncStatus("Speichern fehlgeschlagen");
@@ -319,7 +389,16 @@ async function replaceRemoteEvents(events) {
 
   if (!events.length) return;
 
-  const { error: insertError } = await supabaseClient.from("calendar_events").insert(events.map(toSupabaseRow));
+  let includeEndDateColumn = remoteSupportsEndDate !== false;
+  let { error: insertError } = await supabaseClient.from("calendar_events").insert(events.map((event) => toSupabaseRow(event, includeEndDateColumn)));
+  if (insertError && includeEndDateColumn && isMissingEndDateColumn(insertError)) {
+    remoteSupportsEndDate = false;
+    includeEndDateColumn = false;
+    ({ error: insertError } = await supabaseClient.from("calendar_events").insert(events.map((event) => toSupabaseRow(event, false))));
+  } else if (!insertError) {
+    remoteSupportsEndDate = includeEndDateColumn;
+  }
+
   if (insertError) {
     updateSyncStatus("Import fehlgeschlagen");
     console.error(insertError);
@@ -377,6 +456,10 @@ function dateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "");
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || "");
 }
@@ -384,6 +467,46 @@ function isUuid(value) {
 function fromDateKey(key) {
   const [year, month, day] = key.split("-").map(Number);
   return new Date(year, month - 1, day);
+}
+
+function compareDateKeys(a, b) {
+  return String(a || "").localeCompare(String(b || ""));
+}
+
+function getEventEndDate(event) {
+  const endDate = isDateKey(event?.endDate) ? event.endDate : event?.date;
+  return compareDateKeys(endDate, event?.date) >= 0 ? endDate : event?.date;
+}
+
+function isMultiDayEvent(event) {
+  return compareDateKeys(getEventEndDate(event), event?.date) > 0;
+}
+
+function eventIncludesDate(event, key) {
+  return compareDateKeys(key, event.date) >= 0 && compareDateKeys(key, getEventEndDate(event)) <= 0;
+}
+
+function eventSegmentForDate(event, key) {
+  return {
+    start: key === event.date ? event.start : timeFromMinutes(START_HOUR * 60),
+    end: key === getEventEndDate(event) ? event.end : timeFromMinutes(END_HOUR * 60)
+  };
+}
+
+function normalizeEvent(event, fallbackColor = COLORS[0]) {
+  const date = String(event?.date || "");
+  const rawEndDate = String(event?.endDate || date);
+  const endDate = compareDateKeys(rawEndDate, date) >= 0 ? rawEndDate : date;
+  return {
+    id: isUuid(event?.id) ? String(event.id) : crypto.randomUUID(),
+    title: String(event?.title || ""),
+    date,
+    endDate,
+    start: String(event?.start || ""),
+    end: String(event?.end || ""),
+    note: String(event?.note || "").replace(END_DATE_NOTE_PATTERN, ""),
+    color: COLORS.includes(event?.color) ? event.color : fallbackColor
+  };
 }
 
 function isSameDate(a, b) {
@@ -434,7 +557,15 @@ function formatDate(date) {
   return `${date.getDate()}. ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function formatDateShort(date) {
+  return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.`;
+}
+
 function formatTimeRange(event) {
+  if (isMultiDayEvent(event)) {
+    return `${formatDateShort(fromDateKey(event.date))} bis ${formatDateShort(fromDateKey(getEventEndDate(event)))} ${event.start}-${event.end}`;
+  }
+
   return `${event.start}-${event.end}`;
 }
 
@@ -450,8 +581,8 @@ function colorForEvent(event) {
 
 function eventsForDate(key) {
   return state.events
-    .filter((event) => event.date === key)
-    .sort((a, b) => a.start.localeCompare(b.start));
+    .filter((event) => eventIncludesDate(event, key))
+    .sort((a, b) => `${a.start} ${a.date}`.localeCompare(`${b.start} ${b.date}`));
 }
 
 function setView(nextView) {
@@ -566,8 +697,9 @@ function renderWeek() {
   for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
     const date = dateKey(addDays(weekStart, dayIndex));
     eventsForDate(date).forEach((event) => {
-      const startOffset = (minutesFromTime(event.start) - START_HOUR * 60) / STEP_MINUTES;
-      const endOffset = (minutesFromTime(event.end) - START_HOUR * 60) / STEP_MINUTES;
+      const segment = eventSegmentForDate(event, date);
+      const startOffset = (minutesFromTime(segment.start) - START_HOUR * 60) / STEP_MINUTES;
+      const endOffset = (minutesFromTime(segment.end) - START_HOUR * 60) / STEP_MINUTES;
       const eventButton = createEventButton(event, "week-event");
       eventButton.style.gridColumn = `${dayIndex + 2}`;
       eventButton.style.gridRow = `${startOffset + 2} / ${Math.max(endOffset + 2, startOffset + 3)}`;
@@ -712,8 +844,10 @@ function createEventButton(event, extraClass) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = `calendar-event ${extraClass}`;
+  button.classList.toggle("is-multi-day", isMultiDayEvent(event));
   button.style.setProperty("--event-color", colorForEvent(event));
   button.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${formatTimeRange(event)}</span>`;
+  button.setAttribute("aria-label", `${event.title} ${formatTimeRange(event)}`);
   button.addEventListener("click", (incomingEvent) => {
     incomingEvent.stopPropagation();
     openEventDialog({ event });
@@ -727,6 +861,8 @@ function openEventDialog({ date = dateKey(state.anchorDate), start = "09:00", ev
   elements.eventId.value = event?.id || "";
   elements.eventTitle.value = event?.title || "";
   elements.eventDate.value = event?.date || date;
+  elements.eventEndDate.value = event ? getEventEndDate(event) : date;
+  elements.eventEndDate.min = elements.eventDate.value;
   elements.eventStart.value = event?.start || normalizedStart;
   elements.eventEnd.value = event?.end || defaultEnd(normalizedStart);
   elements.eventNote.value = event?.note || "";
@@ -740,15 +876,24 @@ function closeDialog() {
   elements.dialog.close();
 }
 
+function syncEndDateInput() {
+  if (!elements.eventDate.value) return;
+  elements.eventEndDate.min = elements.eventDate.value;
+  if (!elements.eventEndDate.value || compareDateKeys(elements.eventEndDate.value, elements.eventDate.value) < 0) {
+    elements.eventEndDate.value = elements.eventDate.value;
+  }
+}
+
 async function upsertEvent(formEvent) {
   formEvent.preventDefault();
   const id = elements.eventId.value || crypto.randomUUID();
   const title = elements.eventTitle.value.trim();
   const date = elements.eventDate.value;
+  const endDate = elements.eventEndDate.value || date;
   const start = elements.eventStart.value;
   const end = elements.eventEnd.value;
   const note = elements.eventNote.value.trim();
-  const validation = validateEvent({ title, date, start, end });
+  const validation = validateEvent({ title, date, endDate, start, end });
 
   if (validation) {
     elements.formError.textContent = validation;
@@ -760,6 +905,7 @@ async function upsertEvent(formEvent) {
     id,
     title,
     date,
+    endDate,
     start,
     end,
     note,
@@ -795,16 +941,18 @@ async function upsertEvent(formEvent) {
 
 function validateEvent(event) {
   if (!event.title) return "Bitte Titel eintragen.";
-  if (!event.date) return "Bitte Datum wählen.";
-  if (!event.start || !event.end) return "Bitte Uhrzeit wählen.";
+  if (!event.date || !event.endDate) return "Bitte Datum waehlen.";
+  if (!isDateKey(event.date) || !isDateKey(event.endDate)) return "Bitte gueltiges Datum waehlen.";
+  if (compareDateKeys(event.endDate, event.date) < 0) return "Das Bis-Datum darf nicht vor dem Von-Datum liegen.";
+  if (!event.start || !event.end) return "Bitte Uhrzeit waehlen.";
 
   const start = minutesFromTime(event.start);
   const end = minutesFromTime(event.end);
   const min = START_HOUR * 60;
   const max = END_HOUR * 60;
 
-  if (start < min || end > max) return "Termine sind von 07:00 bis 17:00 möglich.";
-  if (end <= start) return "Das Ende muss nach dem Beginn liegen.";
+  if (start < min || end > max) return "Termine sind von 07:00 bis 17:00 moeglich.";
+  if (event.date === event.endDate && end <= start) return "Das Ende muss nach dem Beginn liegen.";
   return "";
 }
 
@@ -860,15 +1008,7 @@ function importEvents(file) {
       if (!Array.isArray(incoming)) throw new Error("Invalid file");
       const sanitized = incoming
         .filter((event) => validateImportedEvent(event))
-        .map((event) => ({
-          id: isUuid(event.id) ? String(event.id) : crypto.randomUUID(),
-          title: String(event.title),
-          date: String(event.date),
-          start: String(event.start),
-          end: String(event.end),
-          note: String(event.note || ""),
-          color: COLORS.includes(event.color) ? event.color : COLORS[0]
-        }));
+        .map((event, index) => normalizeEvent(event, COLORS[index % COLORS.length]));
 
       if (useRemoteStorage()) {
         updateSyncStatus("Importiere...");
@@ -888,15 +1028,18 @@ function importEvents(file) {
 }
 
 function validateImportedEvent(event) {
+  const endDate = event?.endDate || event?.date;
   return (
     event &&
     typeof event.title === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(event.date || "") &&
+    isDateKey(event.date || "") &&
+    isDateKey(endDate || "") &&
     /^\d{2}:\d{2}$/.test(event.start || "") &&
     /^\d{2}:\d{2}$/.test(event.end || "") &&
     !validateEvent({
       title: event.title,
       date: event.date,
+      endDate,
       start: event.start,
       end: event.end
     })
@@ -961,6 +1104,7 @@ elements.todayButton.addEventListener("click", () => {
 elements.newEventButton.addEventListener("click", () => openEventDialog({ date: dateKey(state.anchorDate), start: "09:00" }));
 elements.loginForm.addEventListener("submit", handleLogin);
 elements.logoutButton.addEventListener("click", logout);
+elements.eventDate.addEventListener("change", syncEndDateInput);
 elements.form.addEventListener("submit", upsertEvent);
 elements.deleteButton.addEventListener("click", deleteSelectedEvent);
 elements.closeDialogButton.addEventListener("click", closeDialog);
