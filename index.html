@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#126d75">
+    <title>Online Kalender</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section class="auth-screen" id="auth-screen">
+      <form class="auth-panel" id="login-form">
+        <span class="brand-mark auth-mark" aria-hidden="true"></span>
+        <h1>Kalender Login</h1>
+        <label class="field">
+          <span>Benutzername</span>
+          <input id="login-username" type="text" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span>Passwort</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="login-error" class="form-error" role="alert"></p>
+        <button class="primary-button" type="submit">Einloggen</button>
+      </form>
+    </section>
+
+    <div class="app-shell" id="app-shell" hidden>
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>Kalender</h1>
+            <p id="range-label" class="range-label"></p>
+          </div>
+        </div>
+
+        <nav class="view-tabs" aria-label="Kalenderansicht">
+          <button class="tab-button is-active" type="button" data-view="week">Woche</button>
+          <button class="tab-button" type="button" data-view="month">Monat</button>
+          <button class="tab-button" type="button" data-view="year">Jahr</button>
+        </nav>
+
+        <div class="toolbar">
+          <button class="icon-button" id="prev-button" type="button" aria-label="Zurück" title="Zurück">
+            <span aria-hidden="true">‹</span>
+          </button>
+          <button class="text-button" id="today-button" type="button">Heute</button>
+          <button class="icon-button" id="next-button" type="button" aria-label="Weiter" title="Weiter">
+            <span aria-hidden="true">›</span>
+          </button>
+          <button class="primary-button" id="new-event-button" type="button">Termin</button>
+          <button class="text-button" id="logout-button" type="button">Logout</button>
+        </div>
+      </header>
+
+      <main class="calendar-stage">
+        <section id="week-view" class="calendar-view week-view" aria-label="Wochenansicht"></section>
+        <section id="month-view" class="calendar-view month-view" aria-label="Monatsansicht" hidden></section>
+        <section id="year-view" class="calendar-view year-view" aria-label="Jahresansicht" hidden></section>
+      </main>
+
+      <footer class="footer-actions">
+        <button class="quiet-button" id="export-button" type="button">Export</button>
+        <label class="quiet-button file-button" for="import-input">Import</label>
+        <input id="import-input" type="file" accept="application/json,.json">
+      </footer>
+    </div>
+
+    <dialog id="event-dialog" class="event-dialog">
+      <form id="event-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="dialog-title">Termin</h2>
+          <button class="icon-button" id="close-dialog-button" type="button" aria-label="Schließen" title="Schließen">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+
+        <input id="event-id" type="hidden">
+
+        <label class="field">
+          <span>Titel</span>
+          <input id="event-title" type="text" autocomplete="off" required>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Datum</span>
+            <input id="event-date" type="date" required>
+          </label>
+          <label class="field">
+            <span>Beginn</span>
+            <input id="event-start" type="time" min="07:00" max="16:45" step="900" required>
+          </label>
+          <label class="field">
+            <span>Ende</span>
+            <input id="event-end" type="time" min="07:15" max="17:00" step="900" required>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Notiz</span>
+          <textarea id="event-note" rows="3"></textarea>
+        </label>
+
+        <p id="form-error" class="form-error" role="alert"></p>
+
+        <div class="dialog-actions">
+            <button class="danger-button" id="delete-event-button" type="button">Löschen</button>
+          <div class="dialog-action-group">
+            <button class="text-button" id="cancel-event-button" type="button">Abbrechen</button>
+            <button class="primary-button" type="submit">Speichern</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
