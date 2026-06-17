@@ -399,6 +399,14 @@ function startOfMonthGrid(date) {
   return startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1));
 }
 
+function getCalendarWeek(date) {
+  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+}
+
 function minutesFromTime(time) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -472,7 +480,13 @@ function updateRangeLabel() {
   if (state.view === "week") {
     const start = startOfWeek(state.anchorDate);
     const end = addDays(start, 6);
-    elements.rangeLabel.textContent = `${formatDate(start)} bis ${formatDate(end)}`;
+    const weekLabel = document.createElement("span");
+    weekLabel.className = "calendar-week-label";
+    weekLabel.textContent = `KW ${getCalendarWeek(start)}`;
+
+    const dateLabel = document.createElement("span");
+    dateLabel.textContent = `${formatDate(start)} bis ${formatDate(end)}`;
+    elements.rangeLabel.replaceChildren(weekLabel, dateLabel);
     return;
   }
 
@@ -501,6 +515,11 @@ function renderWeek() {
   corner.className = "week-corner";
   corner.style.gridColumn = "1";
   corner.style.gridRow = "1";
+  const cornerLabel = document.createElement("span");
+  cornerLabel.textContent = "KW";
+  const cornerNumber = document.createElement("strong");
+  cornerNumber.textContent = String(getCalendarWeek(weekStart));
+  corner.append(cornerLabel, cornerNumber);
   grid.append(corner);
 
   for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
@@ -568,6 +587,10 @@ function renderMonth() {
 
   const header = document.createElement("div");
   header.className = "month-header";
+  const weekHead = document.createElement("div");
+  weekHead.className = "month-head-cell month-week-head";
+  weekHead.textContent = "KW";
+  header.append(weekHead);
   WEEKDAYS_SHORT.forEach((day) => {
     const cell = document.createElement("div");
     cell.className = "month-head-cell";
@@ -579,6 +602,14 @@ function renderMonth() {
   grid.className = "month-grid";
   for (let index = 0; index < 42; index += 1) {
     const date = addDays(gridStart, index);
+    if (index % 7 === 0) {
+      const weekNumber = document.createElement("div");
+      weekNumber.className = "month-week-number";
+      weekNumber.setAttribute("aria-label", `Kalenderwoche ${getCalendarWeek(date)}`);
+      weekNumber.textContent = `KW ${getCalendarWeek(date)}`;
+      grid.append(weekNumber);
+    }
+
     const key = dateKey(date);
     const dayEvents = eventsForDate(key);
     const day = document.createElement("div");
