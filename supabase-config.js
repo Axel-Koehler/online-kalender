@@ -1,5 +1,5 @@
 window.KALENDER_SUPABASE_CONFIG = {
-  url: "https://Axel-Koehler's Project.supabase.co",
+  url: "https://rglpcsnkctqukbvkwaeo.supabase.co/rest/v1/",
   anonKey: "sb_publishable_a6FcFWEoXqRJOYw7by2Jfg_LS5EjA8K",
   loginUsers: {
     Axel: "axel.brueckner1401@gmail.com"
