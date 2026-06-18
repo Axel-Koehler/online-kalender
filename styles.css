@@ -110,7 +110,6 @@ textarea {
     linear-gradient(225deg, rgba(255, 45, 253, 0.14), transparent 24%),
     var(--panel-strong);
   border: 1px solid var(--line-strong);
-  clip-path: polygon(7% 0, 93% 0, 100% 13%, 100% 87%, 93% 100%, 7% 100%, 0 87%, 0 13%);
   box-shadow: var(--shadow), inset 0 0 24px rgba(0, 217, 255, 0.1);
 }
 
@@ -122,7 +121,6 @@ textarea {
   inset: 5px 12px;
   border-top: 1px solid rgba(198, 31, 255, 0.72);
   border-bottom: 1px solid rgba(198, 31, 255, 0.72);
-  clip-path: polygon(6% 0, 94% 0, 100% 50%, 94% 100%, 6% 100%, 0 50%);
   pointer-events: none;
 }
 
@@ -156,7 +154,6 @@ textarea {
     linear-gradient(90deg, rgba(248, 255, 19, 0.1), transparent 12%, rgba(103, 54, 255, 0.18) 50%, transparent 88%, rgba(0, 217, 255, 0.1)),
     var(--panel);
   border: 1px solid var(--line-strong);
-  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
   box-shadow: var(--shadow), inset 0 0 18px rgba(0, 217, 255, 0.12);
   backdrop-filter: blur(18px);
 }
@@ -239,23 +236,17 @@ h1 {
 .danger-button,
 .icon-button {
   position: relative;
-  min-height: 40px;
-  border: 1px solid rgba(0, 217, 255, 0.66);
-  border-radius: 0;
+  min-height: 34px;
+  border: 1px solid rgba(0, 217, 255, 0.46);
+  border-radius: 4px;
   color: rgba(247, 251, 255, 0.94);
   background:
-    linear-gradient(135deg, var(--yellow) 0 9px, transparent 9px) left top / 25px 25px no-repeat,
-    linear-gradient(225deg, var(--yellow) 0 9px, transparent 9px) right top / 25px 25px no-repeat,
-    linear-gradient(45deg, var(--orange) 0 8px, transparent 8px) left bottom / 23px 23px no-repeat,
-    linear-gradient(315deg, var(--orange) 0 8px, transparent 8px) right bottom / 23px 23px no-repeat,
-    linear-gradient(90deg, rgba(9, 14, 42, 0.96), rgba(64, 12, 137, 0.88), rgba(9, 14, 42, 0.96));
+    linear-gradient(180deg, rgba(25, 29, 68, 0.92), rgba(8, 12, 36, 0.94));
   box-shadow:
-    0 0 18px rgba(0, 217, 255, 0.28),
-    0 0 24px rgba(175, 25, 255, 0.2),
-    inset 0 0 13px rgba(0, 217, 255, 0.18);
-  clip-path: polygon(9% 0, 91% 0, 100% 50%, 91% 100%, 9% 100%, 0 50%);
+    0 0 10px rgba(0, 217, 255, 0.18),
+    inset 0 0 8px rgba(0, 217, 255, 0.1);
   text-transform: uppercase;
-  text-shadow: 0 0 10px rgba(0, 217, 255, 0.66);
+  text-shadow: none;
 }
 
 .tab-button::before,
@@ -264,13 +255,7 @@ h1 {
 .primary-button::before,
 .danger-button::before,
 .icon-button::before {
-  content: "";
-  position: absolute;
-  inset: 5px 12px;
-  border-top: 1px solid rgba(198, 31, 255, 0.72);
-  border-bottom: 1px solid rgba(198, 31, 255, 0.72);
-  clip-path: polygon(7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%, 0 50%);
-  pointer-events: none;
+  display: none;
 }
 
 .tab-button:hover,
@@ -289,24 +274,24 @@ h1 {
   border-color: rgba(248, 255, 19, 0.92);
   outline: none;
   box-shadow:
-    0 0 22px rgba(248, 255, 19, 0.22),
-    0 0 30px rgba(0, 217, 255, 0.4),
-    inset 0 0 15px rgba(255, 45, 253, 0.22);
+    0 0 12px rgba(248, 255, 19, 0.18),
+    inset 0 -2px 0 rgba(248, 255, 19, 0.48);
 }
 
 .tab-button {
-  min-width: 92px;
-  padding: 0 18px;
+  min-width: 76px;
+  padding: 0 12px;
   font-weight: 400;
 }
 
 .tab-button.is-active {
   color: var(--yellow);
-  border-color: rgba(248, 255, 19, 0.9);
+  border-color: rgba(248, 255, 19, 0.72);
+  background:
+    linear-gradient(180deg, rgba(45, 37, 92, 0.94), rgba(12, 16, 42, 0.96));
   box-shadow:
-    0 0 22px rgba(248, 255, 19, 0.24),
-    0 0 30px rgba(255, 45, 253, 0.28),
-    inset 0 0 15px rgba(0, 217, 255, 0.24);
+    0 0 12px rgba(248, 255, 19, 0.18),
+    inset 0 -2px 0 rgba(248, 255, 19, 0.72);
 }
 
 .toolbar {
@@ -319,12 +304,12 @@ h1 {
 }
 
 .icon-button {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   display: inline-grid;
   place-items: center;
   padding: 0;
-  font-size: 1.45rem;
+  font-size: 1.1rem;
   line-height: 1;
 }
 
@@ -332,7 +317,7 @@ h1 {
 .quiet-button,
 .primary-button,
 .danger-button {
-  padding: 0 17px;
+  padding: 0 11px;
   font-weight: 400;
 }
 
@@ -403,15 +388,11 @@ h1 {
 .danger-button {
   border-color: rgba(255, 61, 110, 0.74);
   background:
-    linear-gradient(135deg, var(--yellow) 0 9px, transparent 9px) left top / 25px 25px no-repeat,
-    linear-gradient(225deg, var(--yellow) 0 9px, transparent 9px) right top / 25px 25px no-repeat,
-    linear-gradient(45deg, var(--rose) 0 8px, transparent 8px) left bottom / 23px 23px no-repeat,
-    linear-gradient(315deg, var(--rose) 0 8px, transparent 8px) right bottom / 23px 23px no-repeat,
-    linear-gradient(90deg, rgba(42, 7, 32, 0.96), rgba(125, 13, 70, 0.9), rgba(42, 7, 32, 0.96));
+    linear-gradient(180deg, rgba(74, 20, 45, 0.94), rgba(32, 9, 28, 0.96));
 }
 
 .quiet-button {
-  min-height: 36px;
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
   color: var(--muted);
@@ -471,8 +452,9 @@ h1 {
 .week-day-head,
 .time-label,
 .slot-cell {
-  border-right: 1px solid rgba(0, 217, 255, 0.22);
-  border-bottom: 1px solid rgba(0, 217, 255, 0.18);
+  border: 0;
+  border-right: 1px solid rgba(20, 44, 67, 0.78);
+  border-bottom: 1px solid rgba(20, 44, 67, 0.68);
 }
 
 .week-corner {
@@ -546,11 +528,11 @@ h1 {
 
 .slot-cell {
   min-height: 24px;
-  background: rgba(9, 12, 34, 0.58);
+  background: rgba(9, 12, 34, 0.5);
 }
 
 .slot-cell:nth-child(odd) {
-  background: rgba(14, 15, 47, 0.62);
+  background: rgba(14, 15, 47, 0.54);
 }
 
 .slot-cell:hover,
@@ -812,7 +794,6 @@ h1 {
     linear-gradient(135deg, rgba(248, 255, 19, 0.1), transparent 20%),
     linear-gradient(225deg, rgba(255, 45, 253, 0.14), transparent 24%),
     var(--panel-strong);
-  clip-path: polygon(7% 0, 93% 0, 100% 13%, 100% 87%, 93% 100%, 7% 100%, 0 87%, 0 13%);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46), var(--shadow);
 }
 
@@ -910,7 +891,6 @@ h1 {
     grid-template-columns: 1fr;
     gap: 12px;
     align-items: stretch;
-    clip-path: polygon(5% 0, 95% 0, 100% 32px, 100% calc(100% - 32px), 95% 100%, 5% 100%, 0 calc(100% - 32px), 0 32px);
   }
 
   .view-tabs {
