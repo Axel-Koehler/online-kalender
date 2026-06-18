@@ -419,8 +419,7 @@ function subscribeToRemoteEvents() {
         event: "*",
         schema: "public",
         table: "calendar_events",
-        filter: `user_id=eq.${state.currentUser.id}`
-      },
+        },
       () => loadRemoteEvents()
     )
     .subscribe();
