@@ -340,6 +340,66 @@ h1 {
   color: var(--yellow);
 }
 
+.topbar .view-tabs {
+  gap: 6px;
+}
+
+.topbar .toolbar {
+  gap: 6px;
+  flex-wrap: wrap;
+  align-content: center;
+}
+
+.topbar .tab-button,
+.topbar .text-button,
+.topbar .primary-button,
+.topbar .icon-button {
+  min-height: 34px;
+  border-radius: 4px;
+  clip-path: none;
+  border-color: rgba(0, 217, 255, 0.46);
+  background:
+    linear-gradient(180deg, rgba(25, 29, 68, 0.92), rgba(8, 12, 36, 0.94));
+  box-shadow:
+    0 0 10px rgba(0, 217, 255, 0.18),
+    inset 0 0 8px rgba(0, 217, 255, 0.1);
+  font-size: 0.82rem;
+  text-shadow: none;
+}
+
+.topbar .tab-button::before,
+.topbar .text-button::before,
+.topbar .primary-button::before,
+.topbar .icon-button::before {
+  display: none;
+}
+
+.topbar .tab-button {
+  min-width: 76px;
+  padding: 0 12px;
+}
+
+.topbar .tab-button.is-active {
+  color: var(--yellow);
+  border-color: rgba(248, 255, 19, 0.72);
+  background:
+    linear-gradient(180deg, rgba(45, 37, 92, 0.94), rgba(12, 16, 42, 0.96));
+  box-shadow:
+    0 0 12px rgba(248, 255, 19, 0.18),
+    inset 0 -2px 0 rgba(248, 255, 19, 0.72);
+}
+
+.topbar .text-button,
+.topbar .primary-button {
+  padding: 0 11px;
+}
+
+.topbar .icon-button {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+}
+
 .danger-button {
   border-color: rgba(255, 61, 110, 0.74);
   background:
@@ -858,8 +918,9 @@ h1 {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .toolbar {
+  .topbar .toolbar {
     justify-self: stretch;
+    justify-content: flex-start;
   }
 
   .toolbar .primary-button,
@@ -895,9 +956,27 @@ h1 {
     padding-inline: 9px;
   }
 
-  .toolbar {
+  .topbar .tab-button {
+    min-width: 0;
+    padding-inline: 6px;
+    font-size: 0.76rem;
+  }
+
+  .topbar .text-button,
+  .topbar .primary-button {
+    padding-inline: 8px;
+    font-size: 0.76rem;
+  }
+
+  .topbar .icon-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .topbar .toolbar {
     display: grid;
-    grid-template-columns: 42px 1fr 42px 1fr;
+    grid-template-columns: 34px minmax(74px, 1fr) 34px minmax(74px, 1fr);
+    gap: 6px;
   }
 
   #logout-button {
