@@ -133,12 +133,6 @@ textarea {
   text-shadow: 0 0 14px rgba(248, 255, 19, 0.52), 0 0 22px rgba(255, 45, 253, 0.28);
 }
 
-.auth-mark {
-  justify-self: center;
-  width: 52px;
-  height: 52px;
-}
-
 .topbar {
   position: sticky;
   top: 10px;
@@ -773,14 +767,6 @@ h1 {
   font-weight: 400;
   text-transform: uppercase;
   text-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
-}
-
-#import-input {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .event-dialog {

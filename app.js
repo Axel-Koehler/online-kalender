@@ -1108,8 +1108,8 @@ elements.form.addEventListener("submit", upsertEvent);
 elements.deleteButton.addEventListener("click", deleteSelectedEvent);
 elements.closeDialogButton.addEventListener("click", closeDialog);
 elements.cancelButton.addEventListener("click", closeDialog);
-elements.exportButton.addEventListener("click", exportEvents);
-elements.importInput.addEventListener("change", () => importEvents(elements.importInput.files[0]));
+elements.exportButton?.addEventListener("click", exportEvents);
+elements.importInput?.addEventListener("change", () => importEvents(elements.importInput.files[0]));
 window.addEventListener("focus", () => {
   if (useRemoteStorage()) {
     loadRemoteEvents();
