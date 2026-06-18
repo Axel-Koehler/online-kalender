@@ -27,6 +27,21 @@ const MONTHS = [
   "November",
   "Dezember"
 ];
+const FIXED_HOLIDAYS_SAXONY_ANHALT = [
+  { month: 0, day: 1, name: "Neujahr" },
+  { month: 0, day: 6, name: "Heilige Drei Könige" },
+  { month: 4, day: 1, name: "Tag der Arbeit" },
+  { month: 9, day: 3, name: "Tag der Deutschen Einheit" },
+  { month: 9, day: 31, name: "Reformationstag" },
+  { month: 11, day: 25, name: "1. Weihnachtstag" },
+  { month: 11, day: 26, name: "2. Weihnachtstag" }
+];
+const EASTER_HOLIDAYS_SAXONY_ANHALT = [
+  { offset: -2, name: "Karfreitag" },
+  { offset: 1, name: "Ostermontag" },
+  { offset: 39, name: "Christi Himmelfahrt" },
+  { offset: 50, name: "Pfingstmontag" }
+];
 
 const state = {
   view: "week",
@@ -39,6 +54,7 @@ const state = {
 let supabaseClient = null;
 let realtimeChannel = null;
 let remoteSupportsEndDate = null;
+const holidaysByYear = new Map();
 
 const elements = {
   appShell: document.querySelector("#app-shell"),
@@ -529,6 +545,49 @@ function getCalendarWeek(date) {
   return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
 }
 
+function getEasterSunday(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+function holidaysForYear(year) {
+  if (holidaysByYear.has(year)) return holidaysByYear.get(year);
+
+  const holidays = new Map();
+  FIXED_HOLIDAYS_SAXONY_ANHALT.forEach((holiday) => {
+    holidays.set(dateKey(new Date(year, holiday.month, holiday.day)), holiday);
+  });
+
+  const easterSunday = getEasterSunday(year);
+  EASTER_HOLIDAYS_SAXONY_ANHALT.forEach((holiday) => {
+    holidays.set(dateKey(addDays(easterSunday, holiday.offset)), holiday);
+  });
+
+  holidaysByYear.set(year, holidays);
+  return holidays;
+}
+
+function holidayForDate(date) {
+  return holidaysForYear(date.getFullYear()).get(dateKey(date)) || null;
+}
+
+function holidayForKey(key) {
+  return isDateKey(key) ? holidayForDate(fromDateKey(key)) : null;
+}
+
 function minutesFromTime(time) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
@@ -654,13 +713,30 @@ function renderWeek() {
 
   for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
     const date = addDays(weekStart, dayIndex);
+    const holiday = holidayForDate(date);
     const head = document.createElement("button");
     head.type = "button";
     head.className = "week-day-head";
     head.style.gridColumn = `${dayIndex + 2}`;
     head.style.gridRow = "1";
-    head.innerHTML = `<span class="weekday-name">${WEEKDAYS_LONG[dayIndex]}</span><span class="weekday-date">${date.getDate()}</span>`;
+    const weekdayName = document.createElement("span");
+    weekdayName.className = "weekday-name";
+    weekdayName.textContent = WEEKDAYS_LONG[dayIndex];
+    const weekdayDate = document.createElement("span");
+    weekdayDate.className = "weekday-date";
+    weekdayDate.textContent = String(date.getDate());
+    head.append(weekdayName, weekdayDate);
+    if (holiday) {
+      const holidayLabel = document.createElement("span");
+      holidayLabel.className = "weekday-holiday";
+      holidayLabel.textContent = holiday.name;
+      head.append(holidayLabel);
+    }
     head.classList.toggle("is-today", isSameDate(date, today));
+    head.classList.toggle("is-holiday", Boolean(holiday));
+    if (holiday) {
+      head.setAttribute("title", holiday.name);
+    }
     head.addEventListener("click", () => openEventDialog({ date: dateKey(date), start: "09:00" }));
     grid.append(head);
   }
@@ -742,14 +818,19 @@ function renderMonth() {
     }
 
     const key = dateKey(date);
+    const holiday = holidayForDate(date);
     const dayEvents = eventsForDate(key);
     const day = document.createElement("div");
     day.className = "month-day";
     day.tabIndex = 0;
     day.role = "button";
-    day.setAttribute("aria-label", formatDate(date));
+    day.setAttribute("aria-label", holiday ? `${formatDate(date)}, ${holiday.name}` : formatDate(date));
     day.classList.toggle("is-muted", date.getMonth() !== monthStart.getMonth());
     day.classList.toggle("is-today", isSameDate(date, today));
+    day.classList.toggle("is-holiday", Boolean(holiday));
+    if (holiday) {
+      day.setAttribute("title", holiday.name);
+    }
     day.addEventListener("click", () => openEventDialog({ date: key, start: "09:00" }));
     day.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -762,6 +843,13 @@ function renderMonth() {
     number.className = "day-number";
     number.textContent = String(date.getDate());
     day.append(number);
+
+    if (holiday) {
+      const holidayLabel = document.createElement("span");
+      holidayLabel.className = "month-holiday";
+      holidayLabel.textContent = holiday.name;
+      day.append(holidayLabel);
+    }
 
     const eventList = document.createElement("span");
     eventList.className = "month-events";
@@ -809,13 +897,20 @@ function renderYear() {
     for (let index = 0; index < 42; index += 1) {
       const date = addDays(gridStart, index);
       const key = dateKey(date);
+      const holiday = holidayForDate(date);
+      const isCurrentMonth = date.getMonth() === month;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "year-day";
       button.textContent = String(date.getDate());
-      button.classList.toggle("is-muted", date.getMonth() !== month);
+      button.classList.toggle("is-muted", !isCurrentMonth);
       button.classList.toggle("is-today", isSameDate(date, today));
       button.classList.toggle("has-event", eventsForDate(key).length > 0);
+      button.classList.toggle("is-holiday", Boolean(holiday) && isCurrentMonth);
+      if (holiday && isCurrentMonth) {
+        button.setAttribute("title", holiday.name);
+        button.setAttribute("aria-label", `${formatDate(date)}, ${holiday.name}`);
+      }
       button.addEventListener("click", () => {
         state.anchorDate = date;
         setView("week");
