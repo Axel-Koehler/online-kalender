@@ -1,0 +1,63 @@
+/* Hard override for browsers still receiving the original week renderer. */
+.week-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(150px, 1fr)) !important;
+  grid-template-rows: auto !important;
+  grid-auto-rows: auto !important;
+  gap: 0 !important;
+  min-width: 980px !important;
+  background: linear-gradient(90deg, rgba(0, 217, 255, 0.035), rgba(255, 45, 253, 0.035)), rgba(4, 7, 25, 0.72) !important;
+}
+
+.week-corner,
+.time-label,
+.slot-cell {
+  display: none !important;
+}
+
+.week-grid > .week-day-head,
+.week-grid > .week-event {
+  grid-column: auto !important;
+  grid-row: auto !important;
+}
+
+.week-grid > .week-day-head {
+  position: static !important;
+  min-height: 78px !important;
+  top: auto !important;
+  border-top: 0 !important;
+}
+
+.week-grid > .week-event {
+  min-height: 44px !important;
+  margin: 8px !important;
+}
+
+.week-shell {
+  overflow: auto !important;
+}
+
+.month-day {
+  overflow: auto !important;
+}
+
+.month-events {
+  align-content: start !important;
+  overflow: visible !important;
+}
+
+.month-event strong,
+.month-event span {
+  white-space: normal !important;
+}
+
+.more-events {
+  display: none !important;
+}
+
+@media (max-width: 620px) {
+  .week-grid {
+    grid-template-columns: repeat(7, minmax(120px, 1fr)) !important;
+    min-width: 840px !important;
+  }
+}
