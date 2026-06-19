@@ -232,7 +232,7 @@
     const { data, error } = await supabaseClient
       .from(TASKS_TABLE)
       .select("id,body,created_at,updated_at")
-      .order("created_at", { ascending: false });
+      .order("body", { ascending: true });
 
     if (error) {
       console.error(error);
@@ -240,9 +240,10 @@
       return;
     }
 
+    const sortedTasks = [...data].sort((left, right) => String(left.body).localeCompare(String(right.body), "de", { sensitivity: "base" }));
     const list = document.querySelector("#tasks-list");
     if (!list) return;
-    list.replaceChildren(...data.map(taskRow));
+    list.replaceChildren(...sortedTasks.map(taskRow));
     setTasksStatus(data.length ? `${data.length} Aufgaben online gespeichert` : "Noch keine Aufgaben vorhanden");
   }
 
