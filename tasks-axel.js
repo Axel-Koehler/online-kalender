@@ -141,11 +141,18 @@
     if (status) status.textContent = message || "";
   }
 
+  function setActiveTasksTab(active) {
+    document.querySelectorAll(".tab-button").forEach((tab) => {
+      tab.classList.toggle("is-active", active ? tab.dataset.view === "tasks" : tab.dataset.view === state.view);
+    });
+  }
+
   function showCalendarViews() {
     document.querySelector("#week-view").hidden = state.view !== "week";
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
     ensureTasksView().hidden = true;
+    ensureTasksTab().classList.remove("is-active");
   }
 
   function showTasksView() {
@@ -154,6 +161,7 @@
     document.querySelector("#year-view").hidden = true;
     ensureTasksView().hidden = false;
     elements.rangeLabel.textContent = "Aufgaben Axel";
+    setActiveTasksTab(true);
   }
 
   function updateVisibility() {
@@ -233,6 +241,7 @@
     }
 
     const list = document.querySelector("#tasks-list");
+    if (!list) return;
     list.replaceChildren(...data.map(taskRow));
     setTasksStatus(data.length ? `${data.length} Aufgaben online gespeichert` : "Noch keine Aufgaben vorhanden");
   }
@@ -293,7 +302,6 @@
   function openTasks() {
     if (!isAxelUser()) return;
     state.view = "tasks";
-    document.querySelectorAll(".tab-button").forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === "tasks"));
     showTasksView();
     renderTasksShell();
     subscribeTasks();
@@ -320,6 +328,15 @@
 
   wireTasks();
   updateVisibility();
+
+  const originalRender = render;
+  render = function patchedRender() {
+    const keepTasksOpen = state.view === "tasks";
+    originalRender();
+    if (keepTasksOpen) {
+      showTasksView();
+    }
+  };
 
   const originalSetAuthenticated = setAuthenticated;
   setAuthenticated = function patchedSetAuthenticated(authenticated) {
