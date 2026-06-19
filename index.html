@@ -6,8 +6,65 @@
     <meta name="theme-color" content="#070812">
     <title>MB KK Kalender</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=20260619-3">
-    <link rel="stylesheet" href="force-calendar-list.css?v=20260619-3">
+    <link rel="stylesheet" href="styles.css?v=20260619-4">
+    <style>
+      .week-grid {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(150px, 1fr)) !important;
+        grid-template-rows: auto !important;
+        grid-auto-rows: auto !important;
+        min-width: 980px !important;
+      }
+
+      .week-corner,
+      .time-label,
+      .slot-cell {
+        display: none !important;
+      }
+
+      .week-grid > .week-day-head,
+      .week-grid > .week-event {
+        grid-column: auto !important;
+        grid-row: auto !important;
+      }
+
+      .week-grid > .week-day-head {
+        position: static !important;
+        min-height: 78px !important;
+        top: auto !important;
+      }
+
+      .week-grid > .week-event {
+        min-height: 44px !important;
+        margin: 8px !important;
+      }
+
+      .week-shell,
+      .month-day {
+        overflow: auto !important;
+      }
+
+      .month-events {
+        align-content: start !important;
+        overflow: visible !important;
+      }
+
+      .month-event strong,
+      .month-event span {
+        white-space: normal !important;
+      }
+
+      .more-events {
+        display: none !important;
+      }
+
+      @media (max-width: 620px) {
+        .week-grid {
+          grid-template-columns: repeat(7, minmax(120px, 1fr)) !important;
+          min-width: 840px !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <section class="auth-screen" id="auth-screen">
@@ -117,9 +174,9 @@
       </form>
     </dialog>
 
-    <script src="supabase-config.js?v=20260619-3"></script>
-    <script src="app.js?v=20260619-3"></script>
-    <script src="calendar-layout-overrides.js?v=20260619-3"></script>
-    <script src="tasks-axel.js?v=20260619-3"></script>
+    <script src="supabase-config.js?v=20260619-4"></script>
+    <script src="app.js?v=20260619-4"></script>
+    <script src="calendar-layout-overrides.js?v=20260619-4"></script>
+    <script src="tasks-axel.js?v=20260619-4"></script>
   </body>
 </html>
