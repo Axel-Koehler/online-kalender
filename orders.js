@@ -230,6 +230,12 @@
     return raw.includes("order_date") || raw.includes("PGRST204") || raw.includes("42703");
   }
 
+  function compareOrdersByDate(left, right) {
+    const dateCompare = String(left.order_date || left.created_at || "").localeCompare(String(right.order_date || right.created_at || ""));
+    if (dateCompare) return dateCompare;
+    return String(left.customer).localeCompare(String(right.customer), "de", { sensitivity: "base" });
+  }
+
   function ensureOrdersTab() {
     let tab = document.querySelector(`#${ORDERS_TAB_ID}`);
     if (!tab) {
@@ -425,7 +431,7 @@
     let { data, error } = await supabaseClient
       .from(ORDERS_TABLE)
       .select("id,order_date,customer,net_amount,order_awarded,created_at,updated_at")
-      .order("order_date", { ascending: false })
+      .order("order_date", { ascending: true })
       .order("customer", { ascending: true });
 
     if (error && isMissingOrderDateColumn(error)) {
@@ -433,6 +439,7 @@
       ({ data, error } = await supabaseClient
         .from(ORDERS_TABLE)
         .select("id,customer,net_amount,order_awarded,created_at,updated_at")
+        .order("created_at", { ascending: true })
         .order("customer", { ascending: true }));
     }
 
@@ -443,11 +450,7 @@
       return;
     }
 
-    const sortedOrders = [...data].sort((left, right) => {
-      const dateCompare = String(right.order_date || right.created_at || "").localeCompare(String(left.order_date || left.created_at || ""));
-      if (dateCompare) return dateCompare;
-      return String(left.customer).localeCompare(String(right.customer), "de", { sensitivity: "base" });
-    });
+    const sortedOrders = [...data].sort(compareOrdersByDate);
     const list = document.querySelector("#orders-list");
     if (!list) return;
     list.replaceChildren(...sortedOrders.map(orderRow));
