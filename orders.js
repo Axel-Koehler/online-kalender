@@ -211,6 +211,25 @@
     return dateKey(new Date());
   }
 
+  function errorText(error) {
+    const raw = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`;
+    if (raw.includes("customer_orders") || raw.includes("42P01") || raw.includes("PGRST205")) {
+      return "Die Tabelle customer_orders fehlt. Bitte customer_orders.sql in Supabase ausführen.";
+    }
+    if (isMissingOrderDateColumn(error)) {
+      return "Die Datumsspalte order_date fehlt. Bitte customer_orders.sql in Supabase erneut ausführen.";
+    }
+    if (raw.includes("row-level") || raw.includes("42501") || raw.toLowerCase().includes("permission")) {
+      return "Supabase-Berechtigung blockiert das Speichern. Bitte die Policies aus customer_orders.sql erneut ausführen.";
+    }
+    return `Supabase-Fehler: ${error?.message || "Datensatz konnte nicht gespeichert werden."}`;
+  }
+
+  function isMissingOrderDateColumn(error) {
+    const raw = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`;
+    return raw.includes("order_date") || raw.includes("PGRST204") || raw.includes("42703");
+  }
+
   function ensureOrdersTab() {
     let tab = document.querySelector(`#${ORDERS_TAB_ID}`);
     if (!tab) {
@@ -402,15 +421,24 @@
     }
 
     setOrdersStatus("Lade Aufträge...");
-    const { data, error } = await supabaseClient
+    let usedLegacyColumns = false;
+    let { data, error } = await supabaseClient
       .from(ORDERS_TABLE)
       .select("id,order_date,customer,net_amount,order_awarded,created_at,updated_at")
       .order("order_date", { ascending: false })
       .order("customer", { ascending: true });
 
+    if (error && isMissingOrderDateColumn(error)) {
+      usedLegacyColumns = true;
+      ({ data, error } = await supabaseClient
+        .from(ORDERS_TABLE)
+        .select("id,customer,net_amount,order_awarded,created_at,updated_at")
+        .order("customer", { ascending: true }));
+    }
+
     if (error) {
       console.error(error);
-      setOrdersStatus("Aufträge konnten nicht geladen werden. Prüfe, ob die Spalte order_date in customer_orders angelegt ist.");
+      setOrdersStatus(errorText(error));
       updateSummary([]);
       return;
     }
@@ -424,7 +452,11 @@
     if (!list) return;
     list.replaceChildren(...sortedOrders.map(orderRow));
     updateSummary(sortedOrders);
-    setOrdersStatus(data.length ? `${data.length} Aufträge online gespeichert` : "Noch keine Aufträge vorhanden");
+    if (usedLegacyColumns) {
+      setOrdersStatus(`${data.length} Aufträge online gespeichert. Datumsspalte fehlt noch: customer_orders.sql erneut ausführen.`);
+    } else {
+      setOrdersStatus(data.length ? `${data.length} Aufträge online gespeichert` : "Noch keine Aufträge vorhanden");
+    }
   }
 
   async function saveOrder(event) {
@@ -453,14 +485,31 @@
       order_awarded: orderAwarded,
       user_id: state.currentUser.id
     };
-    const request = editingOrderId
+    const legacyPayload = {
+      customer,
+      net_amount: amount,
+      order_awarded: orderAwarded,
+      user_id: state.currentUser.id
+    };
+
+    let request = editingOrderId
       ? supabaseClient.from(ORDERS_TABLE).update({ order_date: orderDate, customer, net_amount: amount, order_awarded: orderAwarded }).eq("id", editingOrderId)
       : supabaseClient.from(ORDERS_TABLE).insert(payload);
 
-    const { error } = await request;
+    let { error } = await request;
+    if (error && isMissingOrderDateColumn(error)) {
+      request = editingOrderId
+        ? supabaseClient.from(ORDERS_TABLE).update({ customer, net_amount: amount, order_awarded: orderAwarded }).eq("id", editingOrderId)
+        : supabaseClient.from(ORDERS_TABLE).insert(legacyPayload);
+      ({ error } = await request);
+      if (!error) {
+        setOrdersStatus("Gespeichert. Für das Datumsfeld bitte customer_orders.sql erneut in Supabase ausführen.");
+      }
+    }
+
     if (error) {
       console.error(error);
-      setOrdersStatus("Auftrag konnte nicht gespeichert werden.");
+      setOrdersStatus(errorText(error));
       return;
     }
 
@@ -477,7 +526,7 @@
     const { error } = await supabaseClient.from(ORDERS_TABLE).delete().eq("id", id);
     if (error) {
       console.error(error);
-      setOrdersStatus("Auftrag konnte nicht gelöscht werden.");
+      setOrdersStatus(errorText(error));
       return;
     }
     if (editingOrderId === id) editingOrderId = null;
