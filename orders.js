@@ -49,14 +49,19 @@
 
     .orders-form {
       display: grid;
-      grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1.2fr) minmax(150px, 0.7fr) auto auto;
+      grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.3fr) minmax(160px, 0.8fr) minmax(150px, auto) minmax(110px, auto);
       gap: 10px;
       align-items: end;
       margin-top: 22px;
     }
 
+    .orders-form .field {
+      min-width: 0;
+    }
+
     .orders-form .field input {
       min-height: 42px;
+      min-width: 0;
     }
 
     .orders-check {
@@ -70,6 +75,7 @@
       background: rgba(3, 6, 22, 0.64);
       text-transform: uppercase;
       font-size: 0.78rem;
+      white-space: nowrap;
     }
 
     .orders-check input {
@@ -165,6 +171,22 @@
       min-height: 32px;
       padding: 0 10px;
       font-size: 0.78rem;
+    }
+
+    @media (max-width: 1100px) {
+      .orders-form {
+        grid-template-columns: minmax(170px, 0.85fr) minmax(260px, 1.15fr);
+      }
+
+      .orders-form .field:nth-child(3),
+      .orders-check,
+      .orders-form .primary-button {
+        grid-column: span 1;
+      }
+
+      .orders-form .primary-button {
+        width: 100%;
+      }
     }
 
     @media (max-width: 900px) {
