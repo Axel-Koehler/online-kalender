@@ -10,6 +10,12 @@
     currency: "EUR"
   });
 
+  const dateFormatter = new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+
   const style = document.createElement("style");
   style.textContent = `
     .orders-view[hidden],
@@ -18,7 +24,7 @@
     }
 
     .orders-shell {
-      width: min(1040px, 100%);
+      width: min(1120px, 100%);
       margin: 0 auto;
       padding: clamp(16px, 3vw, 28px);
       border: 1px solid var(--line-strong);
@@ -43,7 +49,7 @@
 
     .orders-form {
       display: grid;
-      grid-template-columns: minmax(180px, 1.2fr) minmax(150px, 0.7fr) auto auto;
+      grid-template-columns: minmax(140px, 0.7fr) minmax(180px, 1.2fr) minmax(150px, 0.7fr) auto auto;
       gap: 10px;
       align-items: end;
       margin-top: 22px;
@@ -79,22 +85,58 @@
       font-size: 0.85rem;
     }
 
+    .orders-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .orders-total {
+      min-height: 72px;
+      display: grid;
+      gap: 5px;
+      align-content: center;
+      padding: 13px 14px;
+      border: 1px solid rgba(0, 217, 255, 0.32);
+      background: rgba(9, 12, 34, 0.58);
+    }
+
+    .orders-total span {
+      color: var(--cyan);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+    }
+
+    .orders-total strong {
+      color: var(--yellow);
+      font-size: 1.16rem;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
     .orders-list {
       display: grid;
       gap: 9px;
-      margin: 22px 0 0;
+      margin: 18px 0 0;
       padding: 0;
       list-style: none;
     }
 
     .order-item {
       display: grid;
-      grid-template-columns: minmax(160px, 1fr) minmax(120px, auto) minmax(120px, auto) auto auto;
+      grid-template-columns: minmax(94px, auto) minmax(160px, 1fr) minmax(120px, auto) minmax(120px, auto) auto auto;
       gap: 10px;
       align-items: center;
       padding: 10px;
       border: 1px solid rgba(0, 217, 255, 0.28);
       background: rgba(9, 12, 34, 0.58);
+    }
+
+    .order-date {
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: nowrap;
     }
 
     .order-customer {
@@ -125,9 +167,10 @@
       font-size: 0.78rem;
     }
 
-    @media (max-width: 820px) {
+    @media (max-width: 900px) {
       .orders-form,
-      .order-item {
+      .order-item,
+      .orders-summary {
         grid-template-columns: 1fr;
       }
     }
@@ -140,6 +183,10 @@
 
   function canUseRemote() {
     return Boolean(useRemoteStorage());
+  }
+
+  function todayKey() {
+    return dateKey(new Date());
   }
 
   function ensureOrdersTab() {
@@ -217,8 +264,12 @@
     view.innerHTML = `
       <div class="orders-shell">
         <h2>Aufträge erstellen</h2>
-        <p class="orders-subtitle">Kunde, Netto-Angebotssumme und Auftragsstatus online verwalten.</p>
+        <p class="orders-subtitle">Datum, Kunde, Netto-Angebotssumme und Auftragsstatus online verwalten.</p>
         <form class="orders-form" id="orders-form">
+          <label class="field">
+            <span>Datum</span>
+            <input id="order-date" type="date" required>
+          </label>
           <label class="field">
             <span>Kunde</span>
             <input id="order-customer" type="text" autocomplete="off" required>
@@ -234,10 +285,21 @@
           <button class="primary-button" id="order-submit" type="submit">Speichern</button>
         </form>
         <p class="orders-status" id="orders-status" role="status"></p>
+        <div class="orders-summary" aria-label="Summen">
+          <div class="orders-total">
+            <span>Alle Angebotssummen</span>
+            <strong id="orders-total-all">0,00 €</strong>
+          </div>
+          <div class="orders-total">
+            <span>Alle Aufträge erteilt</span>
+            <strong id="orders-total-awarded">0,00 €</strong>
+          </div>
+        </div>
         <ul class="orders-list" id="orders-list"></ul>
       </div>
     `;
 
+    document.querySelector("#order-date").value = todayKey();
     document.querySelector("#orders-form")?.addEventListener("submit", saveOrder);
   }
 
@@ -245,10 +307,32 @@
     return currencyFormatter.format(Number(value || 0));
   }
 
+  function formatOrderDate(value) {
+    if (!value) return "-";
+    const parsed = fromDateKey(String(value).slice(0, 10));
+    return Number.isNaN(parsed.getTime()) ? "-" : dateFormatter.format(parsed);
+  }
+
+  function updateSummary(orders) {
+    const totalAll = orders.reduce((sum, order) => sum + Number(order.net_amount || 0), 0);
+    const totalAwarded = orders
+      .filter((order) => Boolean(order.order_awarded))
+      .reduce((sum, order) => sum + Number(order.net_amount || 0), 0);
+
+    const allField = document.querySelector("#orders-total-all");
+    const awardedField = document.querySelector("#orders-total-awarded");
+    if (allField) allField.textContent = formatEuro(totalAll);
+    if (awardedField) awardedField.textContent = formatEuro(totalAwarded);
+  }
+
   function orderRow(order) {
     const item = document.createElement("li");
     item.className = "order-item";
     item.dataset.orderId = order.id;
+
+    const orderDate = document.createElement("span");
+    orderDate.className = "order-date";
+    orderDate.textContent = formatOrderDate(order.order_date || order.created_at);
 
     const customer = document.createElement("strong");
     customer.className = "order-customer";
@@ -269,11 +353,12 @@
     edit.textContent = "Bearbeiten";
     edit.addEventListener("click", () => {
       editingOrderId = order.id;
+      document.querySelector("#order-date").value = String(order.order_date || order.created_at || todayKey()).slice(0, 10);
       document.querySelector("#order-customer").value = order.customer;
       document.querySelector("#order-amount").value = Number(order.net_amount || 0).toFixed(2);
       document.querySelector("#order-awarded").checked = Boolean(order.order_awarded);
       document.querySelector("#order-submit").textContent = "Aktualisieren";
-      document.querySelector("#order-customer").focus();
+      document.querySelector("#order-date").focus();
     });
 
     const remove = document.createElement("button");
@@ -282,7 +367,7 @@
     remove.textContent = "Löschen";
     remove.addEventListener("click", () => deleteOrder(order.id));
 
-    item.append(customer, amount, awarded, edit, remove);
+    item.append(orderDate, customer, amount, awarded, edit, remove);
     return item;
   }
 
@@ -290,25 +375,33 @@
     if (!isLoggedIn()) return;
     if (!canUseRemote()) {
       setOrdersStatus("Bitte mit Supabase anmelden, damit Aufträge online gespeichert werden.");
+      updateSummary([]);
       return;
     }
 
     setOrdersStatus("Lade Aufträge...");
     const { data, error } = await supabaseClient
       .from(ORDERS_TABLE)
-      .select("id,customer,net_amount,order_awarded,created_at,updated_at")
+      .select("id,order_date,customer,net_amount,order_awarded,created_at,updated_at")
+      .order("order_date", { ascending: false })
       .order("customer", { ascending: true });
 
     if (error) {
       console.error(error);
-      setOrdersStatus("Aufträge konnten nicht geladen werden. Prüfe, ob die Tabelle customer_orders angelegt ist.");
+      setOrdersStatus("Aufträge konnten nicht geladen werden. Prüfe, ob die Spalte order_date in customer_orders angelegt ist.");
+      updateSummary([]);
       return;
     }
 
-    const sortedOrders = [...data].sort((left, right) => String(left.customer).localeCompare(String(right.customer), "de", { sensitivity: "base" }));
+    const sortedOrders = [...data].sort((left, right) => {
+      const dateCompare = String(right.order_date || right.created_at || "").localeCompare(String(left.order_date || left.created_at || ""));
+      if (dateCompare) return dateCompare;
+      return String(left.customer).localeCompare(String(right.customer), "de", { sensitivity: "base" });
+    });
     const list = document.querySelector("#orders-list");
     if (!list) return;
     list.replaceChildren(...sortedOrders.map(orderRow));
+    updateSummary(sortedOrders);
     setOrdersStatus(data.length ? `${data.length} Aufträge online gespeichert` : "Noch keine Aufträge vorhanden");
   }
 
@@ -319,24 +412,27 @@
       return;
     }
 
+    const orderDate = document.querySelector("#order-date").value || todayKey();
     const customer = document.querySelector("#order-customer").value.trim();
-    const amount = Number(document.querySelector("#order-amount").value.replace?.(",", ".") || document.querySelector("#order-amount").value);
+    const amountValue = document.querySelector("#order-amount").value;
+    const amount = Number(String(amountValue).replace(",", "."));
     const orderAwarded = document.querySelector("#order-awarded").checked;
 
-    if (!customer || !Number.isFinite(amount) || amount < 0) {
-      setOrdersStatus("Bitte Kunde und eine gültige Netto-Angebotssumme eintragen.");
+    if (!orderDate || !customer || !Number.isFinite(amount) || amount < 0) {
+      setOrdersStatus("Bitte Datum, Kunde und eine gültige Netto-Angebotssumme eintragen.");
       return;
     }
 
     setOrdersStatus("Speichere...");
     const payload = {
+      order_date: orderDate,
       customer,
       net_amount: amount,
       order_awarded: orderAwarded,
       user_id: state.currentUser.id
     };
     const request = editingOrderId
-      ? supabaseClient.from(ORDERS_TABLE).update({ customer, net_amount: amount, order_awarded: orderAwarded }).eq("id", editingOrderId)
+      ? supabaseClient.from(ORDERS_TABLE).update({ order_date: orderDate, customer, net_amount: amount, order_awarded: orderAwarded }).eq("id", editingOrderId)
       : supabaseClient.from(ORDERS_TABLE).insert(payload);
 
     const { error } = await request;
@@ -348,6 +444,7 @@
 
     editingOrderId = null;
     document.querySelector("#orders-form").reset();
+    document.querySelector("#order-date").value = todayKey();
     document.querySelector("#order-submit").textContent = "Speichern";
     await loadOrders();
   }
