@@ -147,18 +147,27 @@
     });
   }
 
+  function hideOrdersView() {
+    const ordersView = document.querySelector("#orders-view");
+    const ordersTab = document.querySelector("#orders-tab");
+    if (ordersView) ordersView.hidden = true;
+    if (ordersTab) ordersTab.classList.remove("is-active");
+  }
+
   function showCalendarViews() {
     document.querySelector("#week-view").hidden = state.view !== "week";
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
     ensureTasksView().hidden = true;
     ensureTasksTab().classList.remove("is-active");
+    hideOrdersView();
   }
 
   function showTasksView() {
     document.querySelector("#week-view").hidden = true;
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
+    hideOrdersView();
     ensureTasksView().hidden = false;
     elements.rangeLabel.textContent = "Aufgaben Axel";
     setActiveTasksTab(true);
