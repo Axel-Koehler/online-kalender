@@ -1,12 +1,16 @@
 create table if not exists public.customer_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  order_date date not null default current_date,
   customer text not null,
   net_amount numeric(12, 2) not null default 0,
   order_awarded boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.customer_orders
+add column if not exists order_date date not null default current_date;
 
 alter table public.customer_orders enable row level security;
 
@@ -54,6 +58,9 @@ create trigger set_customer_orders_updated_at
 before update on public.customer_orders
 for each row
 execute function public.set_customer_orders_updated_at();
+
+create index if not exists customer_orders_order_date_idx
+on public.customer_orders (order_date desc);
 
 create index if not exists customer_orders_customer_idx
 on public.customer_orders (customer);
