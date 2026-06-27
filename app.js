@@ -10,7 +10,7 @@ const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
 const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
-const MAINTENANCE_COLUMNS = "id,customer,address,phone,last_maintenance,next_maintenance";
+const MAINTENANCE_COLUMNS = "id,customer,address,system,phone,last_maintenance,next_maintenance";
 const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -101,6 +101,7 @@ const elements = {
   maintenanceId: document.querySelector("#maintenance-id"),
   maintenanceCustomer: document.querySelector("#maintenance-customer"),
   maintenanceAddress: document.querySelector("#maintenance-address"),
+  maintenanceSystem: document.querySelector("#maintenance-system"),
   maintenancePhone: document.querySelector("#maintenance-phone"),
   maintenanceLastDate: document.querySelector("#maintenance-last-date"),
   maintenanceNextDate: document.querySelector("#maintenance-next-date"),
@@ -234,6 +235,7 @@ function fromMaintenanceRow(row) {
     id: row.id,
     customer: row.customer,
     address: row.address,
+    system: row.system,
     phone: row.phone,
     lastMaintenance: row.last_maintenance,
     nextMaintenance: row.next_maintenance
@@ -245,6 +247,7 @@ function toMaintenanceRow(record) {
     id: record.id,
     customer: record.customer,
     address: record.address,
+    system: record.system,
     phone: record.phone,
     last_maintenance: record.lastMaintenance,
     next_maintenance: record.nextMaintenance
@@ -1141,7 +1144,7 @@ function renderMaintenance() {
 
   const header = document.createElement("div");
   header.className = "maintenance-row maintenance-head";
-  ["Kunde", "Anschrift", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
+  ["Kunde", "Anschrift", "Anlage", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
     const cell = document.createElement("span");
     cell.textContent = label;
     header.append(cell);
@@ -1154,6 +1157,7 @@ function renderMaintenance() {
     row.append(
       maintenanceCell(record.customer, "Kunde"),
       maintenanceCell(record.address, "Anschrift"),
+      maintenanceCell(record.system, "Anlage"),
       maintenanceCell(record.phone, "Telefon"),
       maintenanceCell(formatDateFromKey(record.lastMaintenance), "Letzte Wartung"),
       maintenanceCell(formatDateFromKey(record.nextMaintenance), "Nächste Wartung")
@@ -1205,6 +1209,7 @@ function normalizeMaintenanceRecord(record) {
     id: isUuid(record?.id) ? String(record.id) : crypto.randomUUID(),
     customer: String(record?.customer || "").trim(),
     address: String(record?.address || "").trim(),
+    system: String(record?.system || "").trim(),
     phone: String(record?.phone || "").trim(),
     lastMaintenance: String(record?.lastMaintenance || ""),
     nextMaintenance: String(record?.nextMaintenance || "")
@@ -1216,7 +1221,6 @@ function validateMaintenanceRecord(record) {
     record &&
       record.customer &&
       record.address &&
-      record.phone &&
       isDateKey(record.lastMaintenance) &&
       isDateKey(record.nextMaintenance)
   );
@@ -1230,6 +1234,7 @@ function resetMaintenanceForm() {
   elements.maintenanceId.value = "";
   elements.maintenanceCustomer.value = "";
   elements.maintenanceAddress.value = "";
+  elements.maintenanceSystem.value = "";
   elements.maintenancePhone.value = "";
   elements.maintenanceLastDate.value = "";
   elements.maintenanceNextDate.value = "";
@@ -1251,6 +1256,7 @@ function editMaintenanceRecord(id) {
   elements.maintenanceId.value = record.id;
   elements.maintenanceCustomer.value = record.customer;
   elements.maintenanceAddress.value = record.address;
+  elements.maintenanceSystem.value = record.system;
   elements.maintenancePhone.value = record.phone;
   elements.maintenanceLastDate.value = record.lastMaintenance;
   elements.maintenanceNextDate.value = record.nextMaintenance;
@@ -1265,13 +1271,14 @@ async function upsertMaintenanceRecord(event) {
     id,
     customer: elements.maintenanceCustomer.value,
     address: elements.maintenanceAddress.value,
+    system: elements.maintenanceSystem.value,
     phone: elements.maintenancePhone.value,
     lastMaintenance: elements.maintenanceLastDate.value,
     nextMaintenance: elements.maintenanceNextDate.value
   });
 
   if (!validateMaintenanceRecord(nextRecord)) {
-    elements.maintenanceError.textContent = "Bitte alle Wartungsfelder ausfüllen.";
+    elements.maintenanceError.textContent = "Bitte Kunde, Anschrift und Wartungsdaten ausfüllen.";
     return;
   }
 

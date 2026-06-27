@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070812">
     <title>MB KK Kalender</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=20260627-2">
+    <link rel="stylesheet" href="styles.css?v=20260627-3">
     <style>
       .view-tabs {
         display: flex !important;
@@ -150,8 +150,12 @@
                   <input id="maintenance-address" type="text" autocomplete="street-address" required>
                 </label>
                 <label class="field">
+                  <span>Anlage</span>
+                  <input id="maintenance-system" type="text" autocomplete="off">
+                </label>
+                <label class="field">
                   <span>Telefonnummer</span>
-                  <input id="maintenance-phone" type="tel" autocomplete="tel" required>
+                  <input id="maintenance-phone" type="tel" autocomplete="tel">
                 </label>
                 <label class="field">
                   <span>Datum letzte Wartung</span>
@@ -232,9 +236,9 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260625-7"></script>
-    <script src="app.js?v=20260627-2"></script>
+    <script src="app.js?v=20260627-3"></script>
     <script src="calendar-layout-overrides.js?v=20260625-7"></script>
-    <script src="tasks-axel.js?v=20260627-2"></script>
-    <script src="orders.js?v=20260627-2"></script>
+    <script src="tasks-axel.js?v=20260627-3"></script>
+    <script src="orders.js?v=20260627-3"></script>
   </body>
 </html>

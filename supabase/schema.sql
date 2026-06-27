@@ -77,12 +77,19 @@ create table if not exists public.maintenance_records (
   id uuid primary key default gen_random_uuid(),
   customer text not null,
   address text not null,
-  phone text not null,
+  system text not null default '',
+  phone text,
   last_maintenance date not null,
   next_maintenance date not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.maintenance_records
+add column if not exists system text not null default '';
+
+alter table public.maintenance_records
+alter column phone drop not null;
 
 alter table public.maintenance_records enable row level security;
 
