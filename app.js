@@ -1192,6 +1192,14 @@ function formatDateFromKey(key) {
   return isDateKey(key) ? formatDate(fromDateKey(key)) : "-";
 }
 
+function addOneYearDateKey(key) {
+  if (!isDateKey(key)) return "";
+  const date = fromDateKey(key);
+  const next = new Date(date);
+  next.setFullYear(date.getFullYear() + 1);
+  return dateKey(next);
+}
+
 function normalizeMaintenanceRecord(record) {
   return {
     id: isUuid(record?.id) ? String(record.id) : crypto.randomUUID(),
@@ -1227,6 +1235,13 @@ function resetMaintenanceForm() {
   elements.maintenanceNextDate.value = "";
   elements.maintenanceError.textContent = "";
   elements.maintenanceCustomer.focus();
+}
+
+function syncNextMaintenanceDate() {
+  const nextDate = addOneYearDateKey(elements.maintenanceLastDate.value);
+  if (nextDate) {
+    elements.maintenanceNextDate.value = nextDate;
+  }
 }
 
 function editMaintenanceRecord(id) {
@@ -1565,6 +1580,8 @@ elements.closeDialogButton.addEventListener("click", closeDialog);
 elements.cancelButton.addEventListener("click", closeDialog);
 elements.maintenanceForm.addEventListener("submit", upsertMaintenanceRecord);
 elements.maintenanceResetButton.addEventListener("click", resetMaintenanceForm);
+elements.maintenanceLastDate.addEventListener("input", syncNextMaintenanceDate);
+elements.maintenanceLastDate.addEventListener("change", syncNextMaintenanceDate);
 elements.exportButton?.addEventListener("click", exportEvents);
 elements.importInput?.addEventListener("change", () => importEvents(elements.importInput.files[0]));
 window.addEventListener("focus", () => {
