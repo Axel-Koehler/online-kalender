@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8">
@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070812">
     <title>MB KK Kalender</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=20260625-7">
+    <link rel="stylesheet" href="styles.css?v=20260627-1">
     <style>
       .view-tabs {
         display: flex !important;
@@ -107,16 +107,17 @@
           <button class="tab-button" type="button" data-view="month">Monat</button>
           <button class="tab-button" type="button" data-view="year">Jahr</button>
           <button class="tab-button tasks-axel-tab" id="tasks-axel-tab" type="button" data-view="tasks" hidden>Aufgaben Axel</button>
-          <button class="tab-button orders-tab" id="orders-tab" type="button" data-view="orders">Aufträge erstellen</button>
+          <button class="tab-button orders-tab" id="orders-tab" type="button" data-view="orders">AuftrÃ¤ge erstellen</button>
+          <button class="tab-button" id="maintenance-page-button" type="button">Wartungen</button>
         </nav>
 
         <div class="toolbar">
-          <button class="icon-button" id="prev-button" type="button" aria-label="Zurück" title="Zurück">
-            <span aria-hidden="true">‹</span>
+          <button class="icon-button" id="prev-button" type="button" aria-label="ZurÃ¼ck" title="ZurÃ¼ck">
+            <span aria-hidden="true">â€¹</span>
           </button>
           <button class="text-button" id="today-button" type="button">Heute</button>
           <button class="icon-button" id="next-button" type="button" aria-label="Weiter" title="Weiter">
-            <span aria-hidden="true">›</span>
+            <span aria-hidden="true">â€º</span>
           </button>
           <button class="primary-button" id="new-event-button" type="button">Termin</button>
           <button class="text-button" id="logout-button" type="button">Logout</button>
@@ -128,7 +129,49 @@
         <section id="month-view" class="calendar-view month-view" aria-label="Monatsansicht" hidden></section>
         <section id="year-view" class="calendar-view year-view" aria-label="Jahresansicht" hidden></section>
         <section id="tasks-view" class="calendar-view tasks-view" aria-label="Aufgaben Axel" hidden></section>
-        <section id="orders-view" class="calendar-view orders-view" aria-label="Aufträge erstellen" hidden></section>
+        <section id="orders-view" class="calendar-view orders-view" aria-label="AuftrÃ¤ge erstellen" hidden></section>
+        <section id="maintenance-view" class="maintenance-view" aria-label="Wartungen" hidden>
+          <div class="maintenance-shell">
+            <form class="maintenance-form" id="maintenance-form">
+              <div class="section-header">
+                <h2>Wartungen</h2>
+                <button class="primary-button" type="submit">Speichern</button>
+              </div>
+
+              <input id="maintenance-id" type="hidden">
+
+              <div class="maintenance-fields">
+                <label class="field">
+                  <span>Kunde</span>
+                  <input id="maintenance-customer" type="text" autocomplete="off" required>
+                </label>
+                <label class="field">
+                  <span>Anschrift</span>
+                  <input id="maintenance-address" type="text" autocomplete="street-address" required>
+                </label>
+                <label class="field">
+                  <span>Telefonnummer</span>
+                  <input id="maintenance-phone" type="tel" autocomplete="tel" required>
+                </label>
+                <label class="field">
+                  <span>Datum letzte Wartung</span>
+                  <input id="maintenance-last-date" type="date" required>
+                </label>
+                <label class="field">
+                  <span>Datum nÃ¤chste Wartung</span>
+                  <input id="maintenance-next-date" type="date" required>
+                </label>
+              </div>
+
+              <p id="maintenance-error" class="form-error" role="alert"></p>
+              <div class="maintenance-form-actions">
+                <button class="text-button" id="maintenance-reset-button" type="button">Neu</button>
+              </div>
+            </form>
+
+            <div class="maintenance-list" id="maintenance-list"></div>
+          </div>
+        </section>
       </main>
 
       <footer class="footer-actions">
@@ -140,8 +183,8 @@
       <form id="event-form" method="dialog">
         <div class="dialog-header">
           <h2 id="dialog-title">Termin</h2>
-          <button class="icon-button" id="close-dialog-button" type="button" aria-label="Schließen" title="Schließen">
-            <span aria-hidden="true">×</span>
+          <button class="icon-button" id="close-dialog-button" type="button" aria-label="SchlieÃŸen" title="SchlieÃŸen">
+            <span aria-hidden="true">Ã—</span>
           </button>
         </div>
 
@@ -179,7 +222,7 @@
         <p id="form-error" class="form-error" role="alert"></p>
 
         <div class="dialog-actions">
-            <button class="danger-button" id="delete-event-button" type="button">Löschen</button>
+            <button class="danger-button" id="delete-event-button" type="button">LÃ¶schen</button>
           <div class="dialog-action-group">
             <button class="text-button" id="cancel-event-button" type="button">Abbrechen</button>
             <button class="primary-button" type="submit">Speichern</button>
@@ -189,9 +232,9 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260625-7"></script>
-    <script src="app.js?v=20260625-7"></script>
+    <script src="app.js?v=20260627-1"></script>
     <script src="calendar-layout-overrides.js?v=20260625-7"></script>
-    <script src="tasks-axel.js?v=20260625-7"></script>
-    <script src="orders.js?v=20260625-7"></script>
+    <script src="tasks-axel.js?v=20260627-1"></script>
+    <script src="orders.js?v=20260627-1"></script>
   </body>
 </html>

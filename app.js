@@ -2,6 +2,7 @@ const START_HOUR = 7;
 const END_HOUR = 17;
 const STEP_MINUTES = 15;
 const STORAGE_KEY = "online-kalender-events-v1";
+const MAINTENANCE_STORAGE_KEY = "online-kalender-maintenance-v1";
 const AUTH_KEY = "online-kalender-auth-v1";
 const LOGIN_USER = "Axel";
 const LOGIN_PASSWORD_SHA256 = "3eeb46f8a8a9e028b31775b5dfc1671a74d612154280e9c9ba18ae1ba9e4fd21";
@@ -9,6 +10,7 @@ const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
 const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
+const MAINTENANCE_COLUMNS = "id,customer,address,phone,last_maintenance,next_maintenance";
 const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -44,9 +46,11 @@ const EASTER_HOLIDAYS_SAXONY_ANHALT = [
 ];
 
 const state = {
+  page: "calendar",
   view: "week",
   anchorDate: startOfDay(new Date()),
   events: loadEvents(),
+  maintenance: loadMaintenanceRecords(),
   currentUser: null,
   isLoadingRemote: false
 };
@@ -67,7 +71,10 @@ const elements = {
   weekView: document.querySelector("#week-view"),
   monthView: document.querySelector("#month-view"),
   yearView: document.querySelector("#year-view"),
+  maintenanceView: document.querySelector("#maintenance-view"),
   tabs: [...document.querySelectorAll(".tab-button")],
+  viewTabs: [...document.querySelectorAll('[data-view="week"], [data-view="month"], [data-view="year"]')],
+  maintenancePageButton: document.querySelector("#maintenance-page-button"),
   prevButton: document.querySelector("#prev-button"),
   nextButton: document.querySelector("#next-button"),
   todayButton: document.querySelector("#today-button"),
@@ -89,7 +96,17 @@ const elements = {
   formError: document.querySelector("#form-error"),
   deleteButton: document.querySelector("#delete-event-button"),
   closeDialogButton: document.querySelector("#close-dialog-button"),
-  cancelButton: document.querySelector("#cancel-event-button")
+  cancelButton: document.querySelector("#cancel-event-button"),
+  maintenanceForm: document.querySelector("#maintenance-form"),
+  maintenanceId: document.querySelector("#maintenance-id"),
+  maintenanceCustomer: document.querySelector("#maintenance-customer"),
+  maintenanceAddress: document.querySelector("#maintenance-address"),
+  maintenancePhone: document.querySelector("#maintenance-phone"),
+  maintenanceLastDate: document.querySelector("#maintenance-last-date"),
+  maintenanceNextDate: document.querySelector("#maintenance-next-date"),
+  maintenanceError: document.querySelector("#maintenance-error"),
+  maintenanceResetButton: document.querySelector("#maintenance-reset-button"),
+  maintenanceList: document.querySelector("#maintenance-list")
 };
 
 function isSupabaseConfigured() {
@@ -212,6 +229,28 @@ function toSupabaseRow(event, includeEndDateColumn = true) {
   return row;
 }
 
+function fromMaintenanceRow(row) {
+  return normalizeMaintenanceRecord({
+    id: row.id,
+    customer: row.customer,
+    address: row.address,
+    phone: row.phone,
+    lastMaintenance: row.last_maintenance,
+    nextMaintenance: row.next_maintenance
+  });
+}
+
+function toMaintenanceRow(record) {
+  return {
+    id: record.id,
+    customer: record.customer,
+    address: record.address,
+    phone: record.phone,
+    last_maintenance: record.lastMaintenance,
+    next_maintenance: record.nextMaintenance
+  };
+}
+
 function isAuthenticated() {
   return localStorage.getItem(AUTH_KEY) === "true";
 }
@@ -268,6 +307,7 @@ async function handleLogin(event) {
       elements.loginPassword.value = "";
       setAuthenticated(true);
       await loadRemoteEvents();
+      await loadRemoteMaintenanceRecords();
       subscribeToRemoteEvents();
       return;
     }
@@ -302,9 +342,28 @@ function loadEvents() {
   }
 }
 
+function loadMaintenanceRecords() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MAINTENANCE_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed)
+      ? parsed
+          .map(normalizeMaintenanceRecord)
+          .filter(validateMaintenanceRecord)
+          .sort(compareMaintenanceRecords)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function saveEvents() {
   state.events.sort((a, b) => `${a.date} ${a.start} ${getEventEndDate(a)}`.localeCompare(`${b.date} ${b.start} ${getEventEndDate(b)}`));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+}
+
+function saveMaintenanceRecords() {
+  state.maintenance.sort(compareMaintenanceRecords);
+  localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(state.maintenance));
 }
 
 async function loadRemoteEvents() {
@@ -344,6 +403,27 @@ async function loadRemoteEvents() {
   render();
 }
 
+async function loadRemoteMaintenanceRecords() {
+  if (!useRemoteStorage()) return;
+
+  const { data, error } = await supabaseClient
+    .from("maintenance_records")
+    .select(MAINTENANCE_COLUMNS)
+    .order("next_maintenance", { ascending: true })
+    .order("customer", { ascending: true });
+
+  if (error) {
+    updateSyncStatus("Supabase Fehler");
+    console.error(error);
+    return;
+  }
+
+  state.maintenance = data.map(fromMaintenanceRow).filter(validateMaintenanceRecord).sort(compareMaintenanceRecords);
+  localStorage.setItem(MAINTENANCE_STORAGE_KEY, JSON.stringify(state.maintenance));
+  updateSyncStatus();
+  renderMaintenance();
+}
+
 async function saveRemoteEvent(event) {
   if (!useRemoteStorage()) return null;
 
@@ -376,11 +456,47 @@ async function saveRemoteEvent(event) {
   return fromSupabaseRow(data);
 }
 
+async function saveRemoteMaintenanceRecord(record) {
+  if (!useRemoteStorage()) return null;
+
+  const { data, error } = await supabaseClient
+    .from("maintenance_records")
+    .upsert(toMaintenanceRow(record))
+    .select(MAINTENANCE_COLUMNS)
+    .single();
+
+  if (error) {
+    updateSyncStatus("Speichern fehlgeschlagen");
+    console.error(error);
+    throw error;
+  }
+
+  updateSyncStatus();
+  return fromMaintenanceRow(data);
+}
+
 async function deleteRemoteEvent(id) {
   if (!useRemoteStorage()) return;
 
   const { error } = await supabaseClient
     .from("calendar_events")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    updateSyncStatus("Löschen fehlgeschlagen");
+    console.error(error);
+    throw error;
+  }
+
+  updateSyncStatus();
+}
+
+async function deleteRemoteMaintenanceRecord(id) {
+  if (!useRemoteStorage()) return;
+
+  const { error } = await supabaseClient
+    .from("maintenance_records")
     .delete()
     .eq("id", id);
 
@@ -437,6 +553,15 @@ function subscribeToRemoteEvents() {
         table: "calendar_events",
         },
       () => loadRemoteEvents()
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "maintenance_records",
+        },
+      () => loadRemoteMaintenanceRecords()
     )
     .subscribe();
 }
@@ -643,14 +768,57 @@ function eventsForDate(key) {
     .sort((a, b) => `${a.start} ${a.date}`.localeCompare(`${b.start} ${b.date}`));
 }
 
+function setPage(nextPage) {
+  if (nextPage === "maintenance") {
+    state.view = "maintenance";
+  }
+
+  if (nextPage === "calendar") {
+    elements.weekView.hidden = state.view !== "week";
+    elements.monthView.hidden = state.view !== "month";
+    elements.yearView.hidden = state.view !== "year";
+    elements.maintenanceView.hidden = true;
+  } else {
+    elements.weekView.hidden = true;
+    elements.monthView.hidden = true;
+    elements.yearView.hidden = true;
+    elements.maintenanceView.hidden = false;
+  }
+
+  document.querySelector("#tasks-view")?.setAttribute("hidden", "");
+  document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
+  document.querySelector("#orders-tab")?.classList.remove("is-active");
+
+  elements.tabs.forEach((tab) => {
+    tab.classList.toggle("is-active", nextPage === "calendar" && tab.dataset.view === state.view);
+  });
+  elements.maintenancePageButton.classList.toggle("is-active", nextPage === "maintenance");
+  elements.prevButton.hidden = nextPage !== "calendar";
+  elements.nextButton.hidden = nextPage !== "calendar";
+  elements.todayButton.hidden = nextPage !== "calendar";
+  elements.newEventButton.hidden = nextPage !== "calendar";
+  render();
+}
+
 function setView(nextView) {
   state.view = nextView;
-  elements.tabs.forEach((tab) => {
+  elements.viewTabs.forEach((tab) => {
     tab.classList.toggle("is-active", tab.dataset.view === nextView);
   });
+  elements.maintenancePageButton.classList.remove("is-active");
   elements.weekView.hidden = nextView !== "week";
   elements.monthView.hidden = nextView !== "month";
   elements.yearView.hidden = nextView !== "year";
+  elements.maintenanceView.hidden = true;
+  document.querySelector("#tasks-view")?.setAttribute("hidden", "");
+  document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
+  document.querySelector("#orders-tab")?.classList.remove("is-active");
+  elements.prevButton.hidden = false;
+  elements.nextButton.hidden = false;
+  elements.todayButton.hidden = false;
+  elements.newEventButton.hidden = false;
   render();
 }
 
@@ -666,6 +834,11 @@ function move(direction) {
 }
 
 function updateRangeLabel() {
+  if (state.view === "maintenance") {
+    elements.rangeLabel.textContent = "Wartungsliste für alle Benutzer";
+    return;
+  }
+
   if (state.view === "week") {
     const start = startOfWeek(state.anchorDate);
     const end = addDays(start, 6);
@@ -689,9 +862,13 @@ function updateRangeLabel() {
 
 function render() {
   updateRangeLabel();
-  renderWeek();
-  renderMonth();
-  renderYear();
+  if (state.view === "maintenance") {
+    renderMaintenance();
+  } else {
+    renderWeek();
+    renderMonth();
+    renderYear();
+  }
 }
 
 function renderWeek() {
@@ -949,6 +1126,185 @@ function createEventButton(event, extraClass) {
   return button;
 }
 
+function renderMaintenance() {
+  const records = [...state.maintenance].sort(compareMaintenanceRecords);
+  const list = document.createElement("div");
+  list.className = "maintenance-table";
+
+  if (!records.length) {
+    const empty = document.createElement("div");
+    empty.className = "maintenance-empty";
+    empty.textContent = "Keine Wartungen eingetragen.";
+    elements.maintenanceList.replaceChildren(empty);
+    return;
+  }
+
+  const header = document.createElement("div");
+  header.className = "maintenance-row maintenance-head";
+  ["Kunde", "Anschrift", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
+    const cell = document.createElement("span");
+    cell.textContent = label;
+    header.append(cell);
+  });
+  list.append(header);
+
+  records.forEach((record) => {
+    const row = document.createElement("div");
+    row.className = "maintenance-row";
+    row.append(
+      maintenanceCell(record.customer, "Kunde"),
+      maintenanceCell(record.address, "Anschrift"),
+      maintenanceCell(record.phone, "Telefon"),
+      maintenanceCell(formatDateFromKey(record.lastMaintenance), "Letzte Wartung"),
+      maintenanceCell(formatDateFromKey(record.nextMaintenance), "Nächste Wartung")
+    );
+
+    const actions = document.createElement("span");
+    actions.className = "maintenance-actions";
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "text-button";
+    editButton.textContent = "Bearbeiten";
+    editButton.addEventListener("click", () => editMaintenanceRecord(record.id));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "danger-button";
+    deleteButton.textContent = "Löschen";
+    deleteButton.addEventListener("click", () => deleteMaintenanceRecord(record.id));
+
+    actions.append(editButton, deleteButton);
+    row.append(actions);
+    list.append(row);
+  });
+
+  elements.maintenanceList.replaceChildren(list);
+}
+
+function maintenanceCell(value, label) {
+  const cell = document.createElement("span");
+  cell.dataset.label = label;
+  cell.textContent = value || "-";
+  return cell;
+}
+
+function formatDateFromKey(key) {
+  return isDateKey(key) ? formatDate(fromDateKey(key)) : "-";
+}
+
+function normalizeMaintenanceRecord(record) {
+  return {
+    id: isUuid(record?.id) ? String(record.id) : crypto.randomUUID(),
+    customer: String(record?.customer || "").trim(),
+    address: String(record?.address || "").trim(),
+    phone: String(record?.phone || "").trim(),
+    lastMaintenance: String(record?.lastMaintenance || ""),
+    nextMaintenance: String(record?.nextMaintenance || "")
+  };
+}
+
+function validateMaintenanceRecord(record) {
+  return Boolean(
+    record &&
+      record.customer &&
+      record.address &&
+      record.phone &&
+      isDateKey(record.lastMaintenance) &&
+      isDateKey(record.nextMaintenance)
+  );
+}
+
+function compareMaintenanceRecords(a, b) {
+  return `${a.nextMaintenance} ${a.customer}`.localeCompare(`${b.nextMaintenance} ${b.customer}`);
+}
+
+function resetMaintenanceForm() {
+  elements.maintenanceId.value = "";
+  elements.maintenanceCustomer.value = "";
+  elements.maintenanceAddress.value = "";
+  elements.maintenancePhone.value = "";
+  elements.maintenanceLastDate.value = "";
+  elements.maintenanceNextDate.value = "";
+  elements.maintenanceError.textContent = "";
+  elements.maintenanceCustomer.focus();
+}
+
+function editMaintenanceRecord(id) {
+  const record = state.maintenance.find((item) => item.id === id);
+  if (!record) return;
+
+  elements.maintenanceId.value = record.id;
+  elements.maintenanceCustomer.value = record.customer;
+  elements.maintenanceAddress.value = record.address;
+  elements.maintenancePhone.value = record.phone;
+  elements.maintenanceLastDate.value = record.lastMaintenance;
+  elements.maintenanceNextDate.value = record.nextMaintenance;
+  elements.maintenanceError.textContent = "";
+  elements.maintenanceCustomer.focus();
+}
+
+async function upsertMaintenanceRecord(event) {
+  event.preventDefault();
+  const id = elements.maintenanceId.value || crypto.randomUUID();
+  const nextRecord = normalizeMaintenanceRecord({
+    id,
+    customer: elements.maintenanceCustomer.value,
+    address: elements.maintenanceAddress.value,
+    phone: elements.maintenancePhone.value,
+    lastMaintenance: elements.maintenanceLastDate.value,
+    nextMaintenance: elements.maintenanceNextDate.value
+  });
+
+  if (!validateMaintenanceRecord(nextRecord)) {
+    elements.maintenanceError.textContent = "Bitte alle Wartungsfelder ausfüllen.";
+    return;
+  }
+
+  let savedRecord = nextRecord;
+  if (useRemoteStorage()) {
+    try {
+      updateSyncStatus("Speichere...");
+      savedRecord = await saveRemoteMaintenanceRecord(nextRecord);
+    } catch {
+      elements.maintenanceError.textContent = "Wartung konnte nicht in Supabase gespeichert werden.";
+      return;
+    }
+  }
+
+  const existing = state.maintenance.find((record) => record.id === id);
+  if (existing) {
+    Object.assign(existing, savedRecord);
+  } else {
+    state.maintenance.push(savedRecord);
+  }
+
+  saveMaintenanceRecords();
+  resetMaintenanceForm();
+  renderMaintenance();
+}
+
+async function deleteMaintenanceRecord(id) {
+  if (!id) return;
+  if (!confirm("Wartung löschen?")) return;
+
+  if (useRemoteStorage()) {
+    try {
+      updateSyncStatus("Lösche...");
+      await deleteRemoteMaintenanceRecord(id);
+    } catch {
+      elements.maintenanceError.textContent = "Wartung konnte nicht in Supabase gelöscht werden.";
+      return;
+    }
+  }
+
+  state.maintenance = state.maintenance.filter((record) => record.id !== id);
+  saveMaintenanceRecords();
+  if (elements.maintenanceId.value === id) {
+    resetMaintenanceForm();
+  }
+  renderMaintenance();
+}
+
 function openEventDialog({ date = dateKey(state.anchorDate), start = "09:00", event = null } = {}) {
   const normalizedStart = clampTime(start);
   elements.formError.textContent = "";
@@ -1158,6 +1514,8 @@ async function logout() {
 
   state.currentUser = null;
   state.events = loadEvents();
+  state.maintenance = loadMaintenanceRecords();
+  state.view = "week";
   setAuthenticated(false);
   render();
 }
@@ -1174,6 +1532,7 @@ async function initApp() {
       if (state.currentUser) {
         setAuthenticated(true);
         await loadRemoteEvents();
+        await loadRemoteMaintenanceRecords();
         subscribeToRemoteEvents();
         return;
       }
@@ -1186,9 +1545,10 @@ async function initApp() {
   render();
 }
 
-elements.tabs.forEach((tab) => {
+elements.viewTabs.forEach((tab) => {
   tab.addEventListener("click", () => setView(tab.dataset.view));
 });
+elements.maintenancePageButton.addEventListener("click", () => setPage("maintenance"));
 elements.prevButton.addEventListener("click", () => move(-1));
 elements.nextButton.addEventListener("click", () => move(1));
 elements.todayButton.addEventListener("click", () => {
@@ -1203,11 +1563,14 @@ elements.form.addEventListener("submit", upsertEvent);
 elements.deleteButton.addEventListener("click", deleteSelectedEvent);
 elements.closeDialogButton.addEventListener("click", closeDialog);
 elements.cancelButton.addEventListener("click", closeDialog);
+elements.maintenanceForm.addEventListener("submit", upsertMaintenanceRecord);
+elements.maintenanceResetButton.addEventListener("click", resetMaintenanceForm);
 elements.exportButton?.addEventListener("click", exportEvents);
 elements.importInput?.addEventListener("change", () => importEvents(elements.importInput.files[0]));
 window.addEventListener("focus", () => {
   if (useRemoteStorage()) {
     loadRemoteEvents();
+    loadRemoteMaintenanceRecords();
   }
 });
 

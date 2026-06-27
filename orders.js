@@ -278,6 +278,8 @@
     document.querySelector("#week-view").hidden = state.view !== "week";
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
+    document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     ensureOrdersView().hidden = true;
     ensureOrdersTab().classList.remove("is-active");
   }
@@ -287,6 +289,8 @@
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
     document.querySelector("#tasks-view")?.setAttribute("hidden", "");
+    document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     ensureOrdersView().hidden = false;
     elements.rangeLabel.textContent = "Aufträge erstellen";
     setActiveOrdersTab(true);
@@ -567,7 +571,7 @@
     document.querySelectorAll('.tab-button:not(#orders-tab)').forEach((button) => {
       button.addEventListener("click", () => {
         setTimeout(() => {
-          if (state.view !== "orders") showCalendarViews();
+          if (state.view !== "orders" && state.view !== "maintenance") showCalendarViews();
         }, 0);
       });
     });

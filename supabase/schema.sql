@@ -72,3 +72,65 @@ execute function public.set_calendar_events_updated_at();
 drop index if exists public.calendar_events_user_date_idx;
 create index calendar_events_user_date_idx
 on public.calendar_events (user_id, event_date, end_date, start_time);
+
+create table if not exists public.maintenance_records (
+  id uuid primary key default gen_random_uuid(),
+  customer text not null,
+  address text not null,
+  phone text not null,
+  last_maintenance date not null,
+  next_maintenance date not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.maintenance_records enable row level security;
+
+drop policy if exists "maintenance_records_select_all_authenticated" on public.maintenance_records;
+create policy "maintenance_records_select_all_authenticated"
+on public.maintenance_records
+for select
+to authenticated
+using (true);
+
+drop policy if exists "maintenance_records_insert_all_authenticated" on public.maintenance_records;
+create policy "maintenance_records_insert_all_authenticated"
+on public.maintenance_records
+for insert
+to authenticated
+with check (true);
+
+drop policy if exists "maintenance_records_update_all_authenticated" on public.maintenance_records;
+create policy "maintenance_records_update_all_authenticated"
+on public.maintenance_records
+for update
+to authenticated
+using (true)
+with check (true);
+
+drop policy if exists "maintenance_records_delete_all_authenticated" on public.maintenance_records;
+create policy "maintenance_records_delete_all_authenticated"
+on public.maintenance_records
+for delete
+to authenticated
+using (true);
+
+create or replace function public.set_maintenance_records_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_maintenance_records_updated_at on public.maintenance_records;
+create trigger set_maintenance_records_updated_at
+before update on public.maintenance_records
+for each row
+execute function public.set_maintenance_records_updated_at();
+
+drop index if exists public.maintenance_records_next_idx;
+create index maintenance_records_next_idx
+on public.maintenance_records (next_maintenance, customer);

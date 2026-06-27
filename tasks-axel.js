@@ -158,6 +158,8 @@
     document.querySelector("#week-view").hidden = state.view !== "week";
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
+    document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     ensureTasksView().hidden = true;
     ensureTasksTab().classList.remove("is-active");
     hideOrdersView();
@@ -167,6 +169,8 @@
     document.querySelector("#week-view").hidden = true;
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
+    document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     hideOrdersView();
     ensureTasksView().hidden = false;
     elements.rangeLabel.textContent = "Aufgaben Axel";
@@ -330,7 +334,7 @@
     document.querySelectorAll('.tab-button:not(#tasks-axel-tab)').forEach((button) => {
       button.addEventListener("click", () => {
         setTimeout(() => {
-          if (state.view !== "tasks") showCalendarViews();
+          if (state.view !== "tasks" && state.view !== "maintenance") showCalendarViews();
         }, 0);
       });
     });
