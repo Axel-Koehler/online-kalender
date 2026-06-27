@@ -10,7 +10,7 @@ const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
 const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
-const MAINTENANCE_COLUMNS = "id,customer,address,system,phone,last_maintenance,next_maintenance";
+const MAINTENANCE_COLUMNS = "id,customer,address,system,customer_type,phone,last_maintenance,next_maintenance";
 const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -102,6 +102,8 @@ const elements = {
   maintenanceCustomer: document.querySelector("#maintenance-customer"),
   maintenanceAddress: document.querySelector("#maintenance-address"),
   maintenanceSystem: document.querySelector("#maintenance-system"),
+  maintenancePrivate: document.querySelector("#maintenance-private"),
+  maintenanceCommercial: document.querySelector("#maintenance-commercial"),
   maintenancePhone: document.querySelector("#maintenance-phone"),
   maintenanceLastDate: document.querySelector("#maintenance-last-date"),
   maintenanceNextDate: document.querySelector("#maintenance-next-date"),
@@ -236,6 +238,7 @@ function fromMaintenanceRow(row) {
     customer: row.customer,
     address: row.address,
     system: row.system,
+    customerType: row.customer_type,
     phone: row.phone,
     lastMaintenance: row.last_maintenance,
     nextMaintenance: row.next_maintenance
@@ -248,6 +251,7 @@ function toMaintenanceRow(record) {
     customer: record.customer,
     address: record.address,
     system: record.system,
+    customer_type: record.customerType,
     phone: record.phone,
     last_maintenance: record.lastMaintenance,
     next_maintenance: record.nextMaintenance
@@ -1144,7 +1148,7 @@ function renderMaintenance() {
 
   const header = document.createElement("div");
   header.className = "maintenance-row maintenance-head";
-  ["Kunde", "Anschrift", "Anlage", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
+  ["Kunde", "Anschrift", "Anlage", "Art", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
     const cell = document.createElement("span");
     cell.textContent = label;
     header.append(cell);
@@ -1158,6 +1162,7 @@ function renderMaintenance() {
       maintenanceCell(record.customer, "Kunde"),
       maintenanceCell(record.address, "Anschrift"),
       maintenanceCell(record.system, "Anlage"),
+      maintenanceCell(record.customerType, "Art"),
       maintenanceCell(record.phone, "Telefon"),
       maintenanceCell(formatDateFromKey(record.lastMaintenance), "Letzte Wartung"),
       maintenanceCell(formatDateFromKey(record.nextMaintenance), "Nächste Wartung")
@@ -1196,6 +1201,25 @@ function formatDateFromKey(key) {
   return isDateKey(key) ? formatDate(fromDateKey(key)) : "-";
 }
 
+function normalizeMaintenanceType(value) {
+  return value === "Privat" || value === "Gewerblich" ? value : "";
+}
+
+function selectedMaintenanceType() {
+  if (elements.maintenancePrivate.checked) return "Privat";
+  if (elements.maintenanceCommercial.checked) return "Gewerblich";
+  return "";
+}
+
+function syncMaintenanceType(source) {
+  if (source === elements.maintenancePrivate && source.checked) {
+    elements.maintenanceCommercial.checked = false;
+  }
+  if (source === elements.maintenanceCommercial && source.checked) {
+    elements.maintenancePrivate.checked = false;
+  }
+}
+
 function addOneYearDateKey(key) {
   if (!isDateKey(key)) return "";
   const date = fromDateKey(key);
@@ -1210,6 +1234,7 @@ function normalizeMaintenanceRecord(record) {
     customer: String(record?.customer || "").trim(),
     address: String(record?.address || "").trim(),
     system: String(record?.system || "").trim(),
+    customerType: normalizeMaintenanceType(record?.customerType || record?.customer_type),
     phone: String(record?.phone || "").trim(),
     lastMaintenance: String(record?.lastMaintenance || ""),
     nextMaintenance: String(record?.nextMaintenance || "")
@@ -1235,6 +1260,8 @@ function resetMaintenanceForm() {
   elements.maintenanceCustomer.value = "";
   elements.maintenanceAddress.value = "";
   elements.maintenanceSystem.value = "";
+  elements.maintenancePrivate.checked = false;
+  elements.maintenanceCommercial.checked = false;
   elements.maintenancePhone.value = "";
   elements.maintenanceLastDate.value = "";
   elements.maintenanceNextDate.value = "";
@@ -1257,6 +1284,8 @@ function editMaintenanceRecord(id) {
   elements.maintenanceCustomer.value = record.customer;
   elements.maintenanceAddress.value = record.address;
   elements.maintenanceSystem.value = record.system;
+  elements.maintenancePrivate.checked = record.customerType === "Privat";
+  elements.maintenanceCommercial.checked = record.customerType === "Gewerblich";
   elements.maintenancePhone.value = record.phone;
   elements.maintenanceLastDate.value = record.lastMaintenance;
   elements.maintenanceNextDate.value = record.nextMaintenance;
@@ -1272,6 +1301,7 @@ async function upsertMaintenanceRecord(event) {
     customer: elements.maintenanceCustomer.value,
     address: elements.maintenanceAddress.value,
     system: elements.maintenanceSystem.value,
+    customerType: selectedMaintenanceType(),
     phone: elements.maintenancePhone.value,
     lastMaintenance: elements.maintenanceLastDate.value,
     nextMaintenance: elements.maintenanceNextDate.value
@@ -1587,6 +1617,8 @@ elements.closeDialogButton.addEventListener("click", closeDialog);
 elements.cancelButton.addEventListener("click", closeDialog);
 elements.maintenanceForm.addEventListener("submit", upsertMaintenanceRecord);
 elements.maintenanceResetButton.addEventListener("click", resetMaintenanceForm);
+elements.maintenancePrivate.addEventListener("change", () => syncMaintenanceType(elements.maintenancePrivate));
+elements.maintenanceCommercial.addEventListener("change", () => syncMaintenanceType(elements.maintenanceCommercial));
 elements.maintenanceLastDate.addEventListener("input", syncNextMaintenanceDate);
 elements.maintenanceLastDate.addEventListener("change", syncNextMaintenanceDate);
 elements.exportButton?.addEventListener("click", exportEvents);

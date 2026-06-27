@@ -78,6 +78,7 @@ create table if not exists public.maintenance_records (
   customer text not null,
   address text not null,
   system text not null default '',
+  customer_type text not null default '',
   phone text,
   last_maintenance date not null,
   next_maintenance date not null,
@@ -87,6 +88,9 @@ create table if not exists public.maintenance_records (
 
 alter table public.maintenance_records
 add column if not exists system text not null default '';
+
+alter table public.maintenance_records
+add column if not exists customer_type text not null default '';
 
 alter table public.maintenance_records
 alter column phone drop not null;

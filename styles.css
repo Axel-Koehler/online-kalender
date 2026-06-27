@@ -845,8 +845,40 @@ h1 {
 
 .maintenance-fields {
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr 0.85fr 0.85fr 0.85fr;
+  grid-template-columns: 1fr 1.25fr 1fr 0.9fr 0.85fr 0.85fr 0.85fr;
   gap: 10px;
+}
+
+.maintenance-type-field {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.maintenance-checks {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.maintenance-checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(0, 217, 255, 0.48);
+  padding: 0 10px;
+  color: var(--text);
+  background: rgba(3, 6, 22, 0.82);
+  text-transform: none;
+}
+
+.maintenance-checks input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--yellow);
 }
 
 .maintenance-form-actions {
@@ -865,7 +897,7 @@ h1 {
 
 .maintenance-row {
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr 0.85fr 0.85fr 0.85fr minmax(170px, auto);
+  grid-template-columns: 1fr 1.25fr 1fr 0.75fr 0.85fr 0.85fr 0.85fr minmax(170px, auto);
   gap: 10px;
   align-items: center;
   min-height: 46px;
