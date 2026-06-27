@@ -851,25 +851,31 @@ h1 {
 
 .maintenance-fields {
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr 0.9fr 0.85fr 0.85fr 0.85fr;
+  grid-template-columns: 1fr 1.2fr 1fr 0.9fr 0.9fr 0.85fr 0.85fr 0.85fr;
   gap: 10px;
 }
 
-.maintenance-type-field {
+.maintenance-type-field,
+.maintenance-contract-field {
   min-width: 0;
   margin: 0;
   border: 0;
   padding: 0;
 }
 
-.maintenance-checks {
+.maintenance-checks,
+.maintenance-single-check {
   min-height: 42px;
+}
+
+.maintenance-checks {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.maintenance-checks label {
+.maintenance-checks label,
+.maintenance-single-check {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -881,7 +887,8 @@ h1 {
   text-transform: none;
 }
 
-.maintenance-checks input {
+.maintenance-checks input,
+.maintenance-single-check input {
   width: 18px;
   height: 18px;
   accent-color: var(--yellow);
@@ -903,7 +910,7 @@ h1 {
 
 .maintenance-row {
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr 0.75fr 0.85fr 0.85fr 0.85fr minmax(170px, auto);
+  grid-template-columns: 1fr 1.2fr 1fr 0.72fr 0.9fr 0.85fr 0.85fr 0.85fr minmax(170px, auto);
   gap: 10px;
   align-items: center;
   min-height: 46px;

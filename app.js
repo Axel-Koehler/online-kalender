@@ -10,7 +10,7 @@ const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
 const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
-const MAINTENANCE_COLUMNS = "id,customer,address,system,customer_type,phone,last_maintenance,next_maintenance";
+const MAINTENANCE_COLUMNS = "id,customer,address,system,customer_type,has_maintenance_contract,phone,last_maintenance,next_maintenance";
 const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -104,6 +104,7 @@ const elements = {
   maintenanceSystem: document.querySelector("#maintenance-system"),
   maintenancePrivate: document.querySelector("#maintenance-private"),
   maintenanceCommercial: document.querySelector("#maintenance-commercial"),
+  maintenanceContract: document.querySelector("#maintenance-contract"),
   maintenancePhone: document.querySelector("#maintenance-phone"),
   maintenanceLastDate: document.querySelector("#maintenance-last-date"),
   maintenanceNextDate: document.querySelector("#maintenance-next-date"),
@@ -239,6 +240,7 @@ function fromMaintenanceRow(row) {
     address: row.address,
     system: row.system,
     customerType: row.customer_type,
+    hasMaintenanceContract: row.has_maintenance_contract,
     phone: row.phone,
     lastMaintenance: row.last_maintenance,
     nextMaintenance: row.next_maintenance
@@ -252,6 +254,7 @@ function toMaintenanceRow(record) {
     address: record.address,
     system: record.system,
     customer_type: record.customerType,
+    has_maintenance_contract: record.hasMaintenanceContract,
     phone: record.phone,
     last_maintenance: record.lastMaintenance,
     next_maintenance: record.nextMaintenance
@@ -1148,7 +1151,7 @@ function renderMaintenance() {
 
   const header = document.createElement("div");
   header.className = "maintenance-row maintenance-head";
-  ["Kunde", "Anschrift", "Anlage", "Art", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
+  ["Kunde", "Anschrift", "Anlage", "Art", "Vertrag", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
     const cell = document.createElement("span");
     cell.textContent = label;
     header.append(cell);
@@ -1163,6 +1166,7 @@ function renderMaintenance() {
       maintenanceCell(record.address, "Anschrift"),
       maintenanceCell(record.system, "Anlage"),
       maintenanceCell(record.customerType, "Art"),
+      maintenanceCell(record.hasMaintenanceContract ? "Wartungsvertrag" : "", "Vertrag"),
       maintenanceCell(record.phone, "Telefon"),
       maintenanceCell(formatDateFromKey(record.lastMaintenance), "Letzte Wartung"),
       maintenanceCell(formatDateFromKey(record.nextMaintenance), "Nächste Wartung")
@@ -1235,6 +1239,7 @@ function normalizeMaintenanceRecord(record) {
     address: String(record?.address || "").trim(),
     system: String(record?.system || "").trim(),
     customerType: normalizeMaintenanceType(record?.customerType || record?.customer_type),
+    hasMaintenanceContract: Boolean(record?.hasMaintenanceContract ?? record?.has_maintenance_contract),
     phone: String(record?.phone || "").trim(),
     lastMaintenance: String(record?.lastMaintenance || ""),
     nextMaintenance: String(record?.nextMaintenance || "")
@@ -1262,6 +1267,7 @@ function resetMaintenanceForm() {
   elements.maintenanceSystem.value = "";
   elements.maintenancePrivate.checked = false;
   elements.maintenanceCommercial.checked = false;
+  elements.maintenanceContract.checked = false;
   elements.maintenancePhone.value = "";
   elements.maintenanceLastDate.value = "";
   elements.maintenanceNextDate.value = "";
@@ -1286,6 +1292,7 @@ function editMaintenanceRecord(id) {
   elements.maintenanceSystem.value = record.system;
   elements.maintenancePrivate.checked = record.customerType === "Privat";
   elements.maintenanceCommercial.checked = record.customerType === "Gewerblich";
+  elements.maintenanceContract.checked = Boolean(record.hasMaintenanceContract);
   elements.maintenancePhone.value = record.phone;
   elements.maintenanceLastDate.value = record.lastMaintenance;
   elements.maintenanceNextDate.value = record.nextMaintenance;
@@ -1302,6 +1309,7 @@ async function upsertMaintenanceRecord(event) {
     address: elements.maintenanceAddress.value,
     system: elements.maintenanceSystem.value,
     customerType: selectedMaintenanceType(),
+    hasMaintenanceContract: elements.maintenanceContract.checked,
     phone: elements.maintenancePhone.value,
     lastMaintenance: elements.maintenanceLastDate.value,
     nextMaintenance: elements.maintenanceNextDate.value
