@@ -24,7 +24,7 @@
     }
 
     .orders-shell {
-      width: min(1120px, 100%);
+      width: 100%;
       margin: 0 auto;
       padding: clamp(16px, 3vw, 28px);
       border: 1px solid var(--line-strong);

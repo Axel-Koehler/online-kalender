@@ -13,7 +13,7 @@
     }
 
     .inquiries-shell {
-      width: min(1260px, 100%);
+      width: 100%;
       margin: 0 auto;
       padding: clamp(14px, 2vw, 22px);
       border: 1px solid var(--line-strong);
