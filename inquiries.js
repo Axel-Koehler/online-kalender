@@ -42,30 +42,38 @@
     }
 
     .inquiry-checks {
-      min-height: 42px;
+      height: var(--field-height, 44px);
+      min-height: var(--field-height, 44px);
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
     .inquiry-checks label {
-      display: flex;
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr);
       align-items: center;
       gap: 5px;
+      height: var(--field-height, 44px);
       min-width: 0;
-      border: 1px solid rgba(0, 217, 255, 0.48);
+      border: 0;
+      outline: 1px solid rgba(0, 217, 255, 0.48);
+      outline-offset: -1px;
       padding: 0 6px;
       color: var(--text);
       background: rgba(3, 6, 22, 0.82);
-      font-size: 0.68rem;
-      line-height: 1.05;
+      font-size: 0.64rem;
+      line-height: 1;
+      overflow: hidden;
       text-transform: none;
+      text-shadow: none;
     }
 
     .inquiry-checks input {
       width: 14px;
       height: 14px;
       flex: 0 0 14px;
+      margin: 0;
       accent-color: var(--yellow);
     }
 

@@ -45,7 +45,8 @@
     }
 
     .tasks-form input {
-      min-height: 42px;
+      height: var(--field-height, 44px);
+      min-height: var(--field-height, 44px);
       width: 100%;
       border: 1px solid rgba(0, 217, 255, 0.48);
       border-radius: 0;

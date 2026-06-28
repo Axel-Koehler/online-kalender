@@ -60,12 +60,14 @@
     }
 
     .orders-form .field input {
-      min-height: 42px;
+      height: var(--field-height, 44px);
+      min-height: var(--field-height, 44px);
       min-width: 0;
     }
 
     .orders-check {
-      min-height: 42px;
+      height: var(--field-height, 44px);
+      min-height: var(--field-height, 44px);
       display: flex;
       align-items: center;
       gap: 9px;
@@ -82,6 +84,7 @@
     .orders-check input {
       width: 18px;
       height: 18px;
+      margin: 0;
       accent-color: var(--yellow);
     }
 

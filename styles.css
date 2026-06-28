@@ -15,6 +15,7 @@
   --orange: #ff9f1c;
   --rose: #ff3d6e;
   --shadow: 0 0 24px rgba(103, 54, 255, 0.45), 0 0 48px rgba(255, 45, 253, 0.24);
+  --field-height: 44px;
   font-family: "Segoe UI", Arial, sans-serif;
 }
 
@@ -865,7 +866,8 @@ h1 {
 
 .maintenance-checks,
 .maintenance-single-check {
-  min-height: 42px;
+  height: var(--field-height);
+  min-height: var(--field-height);
 }
 
 .maintenance-checks {
@@ -876,17 +878,26 @@ h1 {
 
 .maintenance-checks label,
 .maintenance-single-check {
-  display: flex;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
   align-items: center;
   gap: 5px;
   min-width: 0;
-  border: 1px solid rgba(0, 217, 255, 0.48);
+  border: 0;
+  outline: 1px solid rgba(0, 217, 255, 0.48);
+  outline-offset: -1px;
   padding: 0 6px;
   color: var(--text);
   background: rgba(3, 6, 22, 0.82);
-  font-size: 0.64rem;
-  line-height: 1.05;
+  font-size: 0.62rem;
+  line-height: 1;
+  overflow: hidden;
   text-transform: none;
+  text-shadow: none;
+}
+
+.maintenance-checks label {
+  height: var(--field-height);
 }
 
 .maintenance-checks input,
@@ -894,6 +905,7 @@ h1 {
   width: 14px;
   height: 14px;
   flex: 0 0 14px;
+  margin: 0;
   accent-color: var(--yellow);
 }
 
@@ -1027,6 +1039,11 @@ h1 {
   box-shadow: inset 0 0 14px rgba(0, 217, 255, 0.08);
   font-weight: 400;
   text-transform: none;
+}
+
+.field input {
+  height: var(--field-height);
+  min-height: var(--field-height);
 }
 
 .field input:focus,
