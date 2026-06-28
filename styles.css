@@ -878,20 +878,31 @@ h1 {
 .maintenance-single-check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
   border: 1px solid rgba(0, 217, 255, 0.48);
-  padding: 0 10px;
+  padding: 0 6px;
   color: var(--text);
   background: rgba(3, 6, 22, 0.82);
+  font-size: 0.68rem;
+  line-height: 1.05;
   text-transform: none;
 }
 
 .maintenance-checks input,
 .maintenance-single-check input {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
   accent-color: var(--yellow);
+}
+
+.maintenance-checks label span,
+.maintenance-single-check span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .maintenance-form-actions {
