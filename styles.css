@@ -851,7 +851,7 @@ h1 {
 
 .maintenance-fields {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr 0.9fr 0.9fr 0.85fr 0.85fr 0.85fr;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
 
@@ -884,7 +884,7 @@ h1 {
   padding: 0 6px;
   color: var(--text);
   background: rgba(3, 6, 22, 0.82);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   line-height: 1.05;
   text-transform: none;
 }
@@ -1091,10 +1091,6 @@ h1 {
 
   .year-grid {
     grid-template-columns: repeat(2, minmax(210px, 1fr));
-  }
-
-  .maintenance-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .maintenance-row {

@@ -30,7 +30,7 @@
 
     .inquiries-fields {
       display: grid;
-      grid-template-columns: 0.9fr 1fr 0.95fr 1fr 1.2fr 0.9fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 10px;
     }
 
@@ -134,7 +134,6 @@
     }
 
     @media (max-width: 1100px) {
-      .inquiries-fields,
       .inquiry-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
