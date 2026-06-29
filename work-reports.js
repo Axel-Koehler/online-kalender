@@ -580,7 +580,6 @@
         <form class="work-report-form" id="work-report-form">
           <div class="section-header">
             <h2>Arbeitsberichte</h2>
-            <button class="primary-button" type="submit">Speichern</button>
           </div>
           <input id="work-report-id" type="hidden">
 
@@ -657,8 +656,9 @@
 
           <p class="work-report-status" id="work-report-status" role="status"></p>
           <div class="work-report-actions">
+            <button class="primary-button" type="submit">Speichern</button>
             <button class="text-button" id="work-report-reset" type="button">Neu</button>
-            <button class="text-button" id="work-report-clear-signatures" type="button">Unterschriften löschen</button>
+            <button class="text-button" id="work-report-clear-signatures" type="button">Unterschrift zur&uuml;cksetzen</button>
             <button class="text-button" id="work-report-pdf" type="button">PDF speichern</button>
             <button class="text-button" id="work-report-mail" type="button">E-Mail</button>
           </div>
@@ -685,7 +685,6 @@
         <form class="work-report-form" id="work-report-form">
           <div class="section-header">
             <h2>Arbeitsberichte</h2>
-            <button class="primary-button" type="submit">Speichern</button>
           </div>
           <input id="work-report-id" type="hidden">
           <div class="work-report-template-scroll">
@@ -726,7 +725,9 @@
           </div>
           <p class="work-report-status" id="work-report-status" role="status"></p>
           <div class="work-report-actions">
+            <button class="primary-button" type="submit">Speichern</button>
             <button class="text-button" id="work-report-reset" type="button">Neu</button>
+            <button class="text-button" id="work-report-clear-signatures" type="button">Unterschrift zur&uuml;cksetzen</button>
             <button class="text-button" id="work-report-pdf" type="button">PDF speichern</button>
             <button class="text-button" id="work-report-mail" type="button">E-Mail</button>
           </div>
@@ -737,6 +738,10 @@
 
     document.querySelector("#work-report-form")?.addEventListener("submit", saveReport);
     document.querySelector("#work-report-reset")?.addEventListener("click", resetForm);
+    document.querySelector("#work-report-clear-signatures")?.addEventListener("click", () => {
+      clearSignature("wr-technician-signature");
+      clearSignature("wr-customer-signature");
+    });
     document.querySelector("#work-report-pdf")?.addEventListener("click", () => downloadPdf(readForm()));
     document.querySelector("#work-report-mail")?.addEventListener("click", () => emailReport(readForm()));
     setupSignaturePads();
