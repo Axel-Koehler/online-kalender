@@ -697,8 +697,8 @@
               }).join("")}
               ${templateTextarea("wr-description", 76, 1229, 1048, 161)}
               ${CHECK_FIELDS.map((field) => templateCheck(field.id, field.x, field.y)).join("")}
-              ${signaturePad("wr-technician-signature", 495, 1588, 140, 48)}
-              ${signaturePad("wr-customer-signature", 668, 1588, 445, 48)}
+              ${signaturePad("wr-technician-signature", 495, 1524, 142, 56)}
+              ${signaturePad("wr-customer-signature", 668, 1524, 445, 56)}
             </div>
           </div>
           <div class="work-report-extra-fields">
@@ -1189,8 +1189,8 @@
 
     CHECK_FIELDS.forEach((field) => drawCanvasCheck(context, report.checkmarks[field.id], field.x, field.y));
 
-    await drawSignature(context, report.technicianSignature, 495, 1588, 140, 48);
-    await drawSignature(context, report.customerSignature, 668, 1588, 445, 48);
+    await drawSignature(context, report.technicianSignature, 495, 1524, 142, 56);
+    await drawSignature(context, report.customerSignature, 668, 1524, 445, 56);
     return canvas;
   }
 
