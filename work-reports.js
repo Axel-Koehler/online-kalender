@@ -656,8 +656,6 @@
                 return [
                   templateInput(`wr-material-qty-${index}`, 78, y, 92, 26),
                   templateInput(`wr-material-description-${index}`, 180, y, 640, 26),
-                  templateInput(`wr-material-price-${index}`, 832, y, 95, 26, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\""),
-                  templateInput(`wr-material-sum-${index}`, 936, y, 112, 26, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\""),
                   templateInput(`wr-material-date-${index}`, 0, 0, 1, 1, "date", "tabindex=\"-1\" aria-hidden=\"true\"")
                 ].join("");
               }).join("")}
@@ -704,8 +702,6 @@
         ${field(`wr-material-date-${index}`, "Datum", "date")}
         ${field(`wr-material-qty-${index}`, "Menge")}
         ${field(`wr-material-description-${index}`, "Artikelbezeichnung")}
-        ${field(`wr-material-price-${index}`, "EP Euro/Cent", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-        ${field(`wr-material-sum-${index}`, "Summe", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
       </div>
     `;
   }
@@ -863,8 +859,8 @@
         date: value(`wr-material-date-${index}`),
         qty: value(`wr-material-qty-${index}`),
         description: value(`wr-material-description-${index}`),
-        price: value(`wr-material-price-${index}`),
-        sum: value(`wr-material-sum-${index}`)
+        price: "",
+        sum: ""
       }))
     });
   }
@@ -912,8 +908,6 @@
       setValue(`wr-material-date-${index}`, material.date);
       setValue(`wr-material-qty-${index}`, material.qty);
       setValue(`wr-material-description-${index}`, material.description);
-      setValue(`wr-material-price-${index}`, material.price);
-      setValue(`wr-material-sum-${index}`, material.sum);
     });
   }
 
@@ -1167,8 +1161,6 @@
       const y = materialRows[index];
       drawCanvasText(context, item.qty, 81, y, 88, 20);
       drawCanvasText(context, item.description, 183, y, 632, 20);
-      drawCanvasText(context, euro(item.price), 835, y, 90, 20);
-      drawCanvasText(context, euro(item.sum), 939, y, 106, 20);
     });
 
     drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 156, 20);
@@ -1324,15 +1316,11 @@
     pdf.text("Datum", 46, y, 8);
     pdf.text("Menge", 112, y, 8);
     pdf.text("Artikelbezeichnung", 172, y, 8);
-    pdf.text("EP", 430, y, 8);
-    pdf.text("Summe", 492, y, 8);
     y -= 12;
-    report.materials.filter((item) => item.date || item.qty || item.description || item.price || item.sum).forEach((item) => {
+    report.materials.filter((item) => item.date || item.qty || item.description).forEach((item) => {
       pdf.text(formatReportDate(item.date), 46, y, 8);
       pdf.text(item.qty || "-", 112, y, 8);
       pdf.text(item.description || "-", 172, y, 8);
-      pdf.text(euro(item.price), 430, y, 8);
-      pdf.text(euro(item.sum), 492, y, 8);
       y -= 13;
     });
     if (y > 650) y -= 13;
