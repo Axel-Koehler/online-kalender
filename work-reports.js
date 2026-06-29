@@ -61,8 +61,8 @@
       border-radius: 2px;
       padding: 1px 4px;
       color: #101014;
-      background: rgba(255, 255, 255, 0.72);
-      box-shadow: inset 0 0 0 1px rgba(0, 119, 160, 0.28);
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(0, 119, 160, 0.16);
       font-family: Arial, sans-serif;
       font-size: clamp(10px, 1.1vw, 14px);
       font-weight: 400 !important;
@@ -597,15 +597,15 @@
               ${templateInput("wr-company", 210, 312, 365, 24)}
               ${templateInput("wr-street", 210, 345, 365, 24)}
               ${templateInput("wr-postal-city", 210, 378, 365, 24)}
-              ${templateInput("wr-service-order", 775, 84, 335, 24)}
-              ${templateInput("wr-order-date", 715, 126, 392, 24, "date")}
-              ${templateInput("wr-site", 715, 170, 392, 24)}
-              ${templateInput("wr-km", 700, 202, 120, 24, "number", "min=\"0\" step=\"1\"")}
-              ${templateInput("wr-system-type", 700, 253, 410, 25)}
-              ${templateInput("wr-serial-year", 725, 299, 385, 25)}
-              ${templateInput("wr-old-defects", 710, 343, 400, 25)}
-              ${templateInput("wr-manufacturer", 700, 386, 190, 25)}
-              ${templateInput("wr-warranty", 1010, 386, 100, 25)}
+              ${templateInput("wr-service-order", 775, 74, 335, 24)}
+              ${templateInput("wr-order-date", 715, 116, 392, 24, "date")}
+              ${templateInput("wr-site", 715, 160, 392, 24)}
+              ${templateInput("wr-km", 700, 192, 120, 24, "number", "min=\"0\" step=\"1\"")}
+              ${templateInput("wr-system-type", 700, 243, 410, 25)}
+              ${templateInput("wr-serial-year", 725, 289, 385, 25)}
+              ${templateInput("wr-old-defects", 710, 333, 400, 25)}
+              ${templateInput("wr-manufacturer", 700, 376, 190, 25)}
+              ${templateInput("wr-warranty", 1010, 376, 100, 25)}
               ${templateInput("wr-report-date", 78, 454, 90, 25, "date")}
               ${templateInput("wr-start", 178, 454, 100, 25, "time")}
               ${templateInput("wr-end", 288, 454, 100, 25, "time")}
@@ -1098,15 +1098,15 @@
     drawCanvasText(context, report.company, 213, 316, 360, 20);
     drawCanvasText(context, report.street, 213, 349, 360, 20);
     drawCanvasText(context, report.postalCity, 213, 382, 360, 20);
-    drawCanvasText(context, report.serviceOrderNumber, 778, 88, 330, 20);
-    drawCanvasText(context, formatReportDate(report.orderDate), 718, 130, 385, 20);
-    drawCanvasText(context, report.site, 718, 174, 385, 20);
-    drawCanvasText(context, report.drivenKm, 703, 206, 112, 20);
-    drawCanvasText(context, report.systemType, 703, 257, 400, 21);
-    drawCanvasText(context, report.serialYear, 728, 303, 378, 21);
-    drawCanvasText(context, report.oldDefects, 713, 347, 395, 21);
-    drawCanvasText(context, report.manufacturer, 703, 390, 185, 21);
-    drawCanvasText(context, report.manufacturerWarranty, 1013, 390, 95, 21);
+    drawCanvasText(context, report.serviceOrderNumber, 778, 78, 330, 20);
+    drawCanvasText(context, formatReportDate(report.orderDate), 718, 120, 385, 20);
+    drawCanvasText(context, report.site, 718, 164, 385, 20);
+    drawCanvasText(context, report.drivenKm, 703, 196, 112, 20);
+    drawCanvasText(context, report.systemType, 703, 247, 400, 21);
+    drawCanvasText(context, report.serialYear, 728, 293, 378, 21);
+    drawCanvasText(context, report.oldDefects, 713, 337, 395, 21);
+    drawCanvasText(context, report.manufacturer, 703, 380, 185, 21);
+    drawCanvasText(context, report.manufacturerWarranty, 1013, 380, 95, 21);
     drawCanvasText(context, formatReportDate(report.reportDate), 81, 458, 86, 19);
     drawCanvasText(context, report.startTime, 181, 458, 94, 19);
     drawCanvasText(context, report.endTime, 291, 458, 94, 19);
