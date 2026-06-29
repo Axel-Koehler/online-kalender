@@ -127,6 +127,20 @@
       display: none;
     }
 
+    .wr-template-static-text {
+      position: absolute;
+      z-index: 2;
+      box-sizing: border-box;
+      padding: 1px 4px;
+      color: #101014;
+      font-family: Arial, sans-serif;
+      font-size: clamp(10px, 1.1vw, 14px);
+      font-weight: 400 !important;
+      line-height: 1.1;
+      pointer-events: none;
+      text-shadow: none;
+    }
+
     .work-report-extra-fields {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -547,6 +561,10 @@
     return `<input class="wr-template-check" id="${id}" type="checkbox" style="${pos(x, y, 18, 18)}">`;
   }
 
+  function templateStaticText(id, x, y, width, height) {
+    return `<span class="wr-template-static-text" id="${id}" style="${pos(x, y, width, height)}"></span>`;
+  }
+
   function signaturePad(id, x, y, width, height) {
     return `
       <div class="wr-signature" style="${pos(x, y, width, height)}">
@@ -697,6 +715,8 @@
               }).join("")}
               ${templateTextarea("wr-description", 76, 1229, 1048, 161)}
               ${CHECK_FIELDS.map((field) => templateCheck(field.id, field.x, field.y)).join("")}
+              ${templateStaticText("wr-technician-signature-date", 495, 1500, 142, 20)}
+              ${templateStaticText("wr-customer-signature-date", 668, 1500, 445, 20)}
               ${signaturePad("wr-technician-signature", 495, 1524, 142, 56)}
               ${signaturePad("wr-customer-signature", 668, 1524, 445, 56)}
             </div>
@@ -922,6 +942,11 @@
     setValue("wr-old-defects", next.oldDefects);
     const description = document.querySelector("#wr-description");
     if (description) description.value = next.workDescription;
+    const signatureDate = formatReportDate(next.reportDate || todayKey());
+    const technicianSignatureDate = document.querySelector("#wr-technician-signature-date");
+    const customerSignatureDate = document.querySelector("#wr-customer-signature-date");
+    if (technicianSignatureDate) technicianSignatureDate.textContent = signatureDate;
+    if (customerSignatureDate) customerSignatureDate.textContent = signatureDate;
     setValue("wr-km", next.drivenKm);
     CHECK_FIELDS.forEach((field) => setChecked(field.id, next.checkmarks[field.id]));
     setSignature("wr-technician-signature", next.technicianSignature);
@@ -1188,6 +1213,9 @@
     drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 156, 20);
 
     CHECK_FIELDS.forEach((field) => drawCanvasCheck(context, report.checkmarks[field.id], field.x, field.y));
+    const signatureDate = formatReportDate(report.reportDate || todayKey());
+    drawCanvasText(context, signatureDate, 498, 1504, 136, 18);
+    drawCanvasText(context, signatureDate, 671, 1504, 438, 18);
 
     await drawSignature(context, report.technicianSignature, 495, 1524, 142, 56);
     await drawSignature(context, report.customerSignature, 668, 1524, 445, 56);
