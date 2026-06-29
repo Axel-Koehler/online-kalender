@@ -593,10 +593,10 @@
           <input id="work-report-id" type="hidden">
           <div class="work-report-template-scroll">
             <div class="work-report-template-page" id="work-report-template-page">
-              ${templateInput("wr-customer", 210, 290, 365, 24)}
-              ${templateInput("wr-company", 210, 322, 365, 24)}
-              ${templateInput("wr-street", 210, 355, 365, 24)}
-              ${templateInput("wr-postal-city", 210, 388, 365, 24)}
+              ${templateInput("wr-customer", 210, 280, 365, 24)}
+              ${templateInput("wr-company", 210, 312, 365, 24)}
+              ${templateInput("wr-street", 210, 345, 365, 24)}
+              ${templateInput("wr-postal-city", 210, 378, 365, 24)}
               ${templateInput("wr-service-order", 775, 84, 335, 24)}
               ${templateInput("wr-order-date", 715, 126, 392, 24, "date")}
               ${templateInput("wr-site", 715, 170, 392, 24)}
@@ -1094,10 +1094,10 @@
     context.font = "20px Arial";
     context.textBaseline = "top";
 
-    drawCanvasText(context, report.customerName, 213, 294, 360, 20);
-    drawCanvasText(context, report.company, 213, 326, 360, 20);
-    drawCanvasText(context, report.street, 213, 359, 360, 20);
-    drawCanvasText(context, report.postalCity, 213, 392, 360, 20);
+    drawCanvasText(context, report.customerName, 213, 284, 360, 20);
+    drawCanvasText(context, report.company, 213, 316, 360, 20);
+    drawCanvasText(context, report.street, 213, 349, 360, 20);
+    drawCanvasText(context, report.postalCity, 213, 382, 360, 20);
     drawCanvasText(context, report.serviceOrderNumber, 778, 88, 330, 20);
     drawCanvasText(context, formatReportDate(report.orderDate), 718, 130, 385, 20);
     drawCanvasText(context, report.site, 718, 174, 385, 20);
