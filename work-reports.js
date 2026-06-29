@@ -661,7 +661,7 @@
                   templateInput(`wr-material-date-${index}`, 0, 0, 1, 1, "date", "tabindex=\"-1\" aria-hidden=\"true\"")
                 ].join("");
               }).join("")}
-              ${templateTextarea("wr-description", 76, 1229, 1048, 181)}
+              ${templateTextarea("wr-description", 76, 1229, 1048, 161)}
               ${templateCheck("wr-consent", 391, 1439)}
               ${templateCheck("wr-maintenance", 675, 1439)}
               ${templateCheck("wr-service-finished", 391, 1488)}
@@ -1171,7 +1171,7 @@
       drawCanvasText(context, euro(item.sum), 939, y, 106, 20);
     });
 
-    drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 176, 20);
+    drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 156, 20);
 
     drawCanvasCheck(context, report.consentStorage, 391, 1439);
     drawCanvasCheck(context, report.annualMaintenance, 675, 1439);
