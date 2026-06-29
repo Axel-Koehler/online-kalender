@@ -687,7 +687,7 @@
               ${templateInput("wr-warranty", 1010, 376, 100, 25)}
               ${[454, 488, 522, 556, 590, 624, 658, 692].map((y, index) => templateWorkRow(index, y)).join("")}
               ${Array.from({ length: 11 }, (_, index) => {
-                const materialRows = [805, 845, 885, 924, 964, 1004, 1043, 1083, 1120, 1157, 1194];
+                const materialRows = [766, 805, 845, 885, 924, 964, 1004, 1043, 1083, 1120, 1157];
                 const y = materialRows[index];
                 return [
                   templateInput(`wr-material-qty-${index}`, 78, y, 92, 26),
@@ -1179,7 +1179,7 @@
     });
 
     report.materials.forEach((item, index) => {
-      const materialRows = [809, 849, 889, 928, 968, 1008, 1047, 1087, 1124, 1161, 1198];
+      const materialRows = [770, 809, 849, 889, 928, 968, 1008, 1047, 1087, 1124, 1161];
       const y = materialRows[index];
       drawCanvasText(context, item.qty, 81, y, 88, 20);
       drawCanvasText(context, item.description, 183, y, 632, 20);
