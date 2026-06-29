@@ -360,7 +360,7 @@
       technicianSignature: "",
       customerSignature: "",
       workRows: Array.from({ length: 8 }, () => ({ date: "", start: "", end: "", travel: "", hours: "", overtime: "", technicians: "" })),
-      materials: Array.from({ length: 5 }, () => ({ date: "", qty: "", description: "", price: "", sum: "" }))
+      materials: Array.from({ length: 11 }, () => ({ date: "", qty: "", description: "", price: "", sum: "" }))
     };
   }
 
@@ -400,8 +400,8 @@
     base.workHours = firstWorkRow.hours || base.workHours;
     base.overtime = firstWorkRow.overtime || base.overtime;
     base.technicians = firstWorkRow.technicians || base.technicians;
-    base.materials = Array.isArray(base.materials) ? base.materials.slice(0, 5) : [];
-    while (base.materials.length < 5) base.materials.push({ date: "", qty: "", description: "", price: "", sum: "" });
+    base.materials = Array.isArray(base.materials) ? base.materials.slice(0, 11) : [];
+    while (base.materials.length < 11) base.materials.push({ date: "", qty: "", description: "", price: "", sum: "" });
     return base;
   }
 
@@ -576,7 +576,7 @@
           <section class="work-report-group">
             <span class="work-report-group-title">Materialverbrauch / Artikelbezeichnung</span>
             <div class="work-report-materials" id="work-report-materials">
-              ${Array.from({ length: 5 }, (_, index) => materialRow(index)).join("")}
+              ${Array.from({ length: 11 }, (_, index) => materialRow(index)).join("")}
             </div>
           </section>
 
@@ -650,8 +650,8 @@
               ${templateInput("wr-manufacturer", 700, 376, 190, 25)}
               ${templateInput("wr-warranty", 1010, 376, 100, 25)}
               ${[454, 488, 522, 556, 590, 624, 658, 692].map((y, index) => templateWorkRow(index, y)).join("")}
-              ${Array.from({ length: 5 }, (_, index) => {
-                const materialRows = [805, 845, 885, 924, 964];
+              ${Array.from({ length: 11 }, (_, index) => {
+                const materialRows = [805, 845, 885, 924, 964, 1004, 1043, 1083, 1120, 1157, 1194];
                 const y = materialRows[index];
                 return [
                   templateInput(`wr-material-qty-${index}`, 78, y, 92, 26),
@@ -855,7 +855,7 @@
       technicianSignature: signatureData("wr-technician-signature"),
       customerSignature: signatureData("wr-customer-signature"),
       workRows,
-      materials: Array.from({ length: 5 }, (_, index) => ({
+      materials: Array.from({ length: 11 }, (_, index) => ({
         date: value(`wr-material-date-${index}`),
         qty: value(`wr-material-qty-${index}`),
         description: value(`wr-material-description-${index}`),
@@ -1157,7 +1157,7 @@
     });
 
     report.materials.forEach((item, index) => {
-      const materialRows = [809, 849, 889, 928, 968];
+      const materialRows = [809, 849, 889, 928, 968, 1008, 1047, 1087, 1124, 1161, 1198];
       const y = materialRows[index];
       drawCanvasText(context, item.qty, 81, y, 88, 20);
       drawCanvasText(context, item.description, 183, y, 632, 20);
