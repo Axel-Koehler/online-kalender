@@ -717,8 +717,8 @@
               ${CHECK_FIELDS.map((field) => templateCheck(field.id, field.x, field.y)).join("")}
               ${templateStaticText("wr-technician-signature-date", 495, 1500, 142, 20)}
               ${templateStaticText("wr-customer-signature-date", 668, 1500, 445, 20)}
-              ${signaturePad("wr-technician-signature", 495, 1524, 142, 56)}
-              ${signaturePad("wr-customer-signature", 668, 1524, 445, 56)}
+              ${signaturePad("wr-technician-signature", 495, 1524, 142, 112)}
+              ${signaturePad("wr-customer-signature", 668, 1524, 445, 112)}
             </div>
           </div>
           <div class="work-report-extra-fields">
@@ -1217,8 +1217,8 @@
     drawCanvasText(context, signatureDate, 498, 1504, 136, 18);
     drawCanvasText(context, signatureDate, 671, 1504, 438, 18);
 
-    await drawSignature(context, report.technicianSignature, 495, 1524, 142, 56);
-    await drawSignature(context, report.customerSignature, 668, 1524, 445, 56);
+    await drawSignature(context, report.technicianSignature, 495, 1524, 142, 112);
+    await drawSignature(context, report.customerSignature, 668, 1524, 445, 112);
     return canvas;
   }
 
