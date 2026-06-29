@@ -55,6 +55,7 @@
     .wr-template-textarea {
       position: absolute;
       z-index: 2;
+      box-sizing: border-box;
       min-height: 0;
       border: 0;
       border-radius: 2px;
@@ -486,7 +487,6 @@
             <span class="work-report-group-title">Kunde und Auftrag</span>
             <div class="work-report-fields">
               ${field("wr-report-date", "Datum", "date")}
-              ${field("wr-report-number", "Auftrag / KD-Bericht")}
               ${field("wr-service-order", "Kundendienstauftrags-Nr.")}
               ${field("wr-order-date", "Auftragsdatum", "date")}
               ${field("wr-customer", "Name, Vorname")}
@@ -523,7 +523,6 @@
               ${field("wr-overtime", "Überstunden")}
               ${field("wr-technicians", "Anzahl Monteure", "number", "min=\"0\" step=\"1\"")}
               ${field("wr-km", "Gefahrene km", "number", "min=\"0\" step=\"1\"")}
-              ${field("wr-vehicle-costs", "Kfz-Kosten", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
               ${field("wr-pressure", "Dichtheitsprüfung bar")}
             </div>
           </section>
@@ -594,18 +593,16 @@
           <input id="work-report-id" type="hidden">
           <div class="work-report-template-scroll">
             <div class="work-report-template-page" id="work-report-template-page">
-              ${templateInput("wr-report-number", 255, 237, 315, 30)}
               ${templateInput("wr-customer", 210, 290, 365, 24)}
               ${templateInput("wr-company", 210, 322, 365, 24)}
               ${templateInput("wr-street", 210, 355, 365, 24)}
               ${templateInput("wr-postal-city", 210, 388, 365, 24)}
-              ${templateInput("wr-service-order", 800, 70, 300, 24)}
-              ${templateInput("wr-order-date", 800, 120, 300, 24, "date")}
-              ${templateInput("wr-site", 800, 150, 300, 24)}
-              ${templateInput("wr-vehicle-costs", 590, 202, 105, 24, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
+              ${templateInput("wr-service-order", 775, 84, 335, 24)}
+              ${templateInput("wr-order-date", 715, 126, 392, 24, "date")}
+              ${templateInput("wr-site", 715, 170, 392, 24)}
               ${templateInput("wr-km", 700, 202, 120, 24, "number", "min=\"0\" step=\"1\"")}
               ${templateInput("wr-system-type", 700, 253, 410, 25)}
-              ${templateInput("wr-serial-year", 715, 299, 395, 25)}
+              ${templateInput("wr-serial-year", 725, 299, 385, 25)}
               ${templateInput("wr-old-defects", 710, 343, 400, 25)}
               ${templateInput("wr-manufacturer", 700, 386, 190, 25)}
               ${templateInput("wr-warranty", 1010, 386, 100, 25)}
@@ -779,7 +776,7 @@
     return normalize({
       id,
       reportDate: value("wr-report-date") || todayKey(),
-      reportNumber: value("wr-report-number"),
+      reportNumber: "",
       serviceOrderNumber: value("wr-service-order"),
       orderDate: value("wr-order-date"),
       customerName: value("wr-customer"),
@@ -801,7 +798,7 @@
       overtime: value("wr-overtime"),
       technicians: value("wr-technicians"),
       drivenKm: value("wr-km"),
-      vehicleCosts: value("wr-vehicle-costs"),
+      vehicleCosts: "",
       pressureBar: value("wr-pressure"),
       consentStorage: checked("wr-consent"),
       annualMaintenance: checked("wr-maintenance"),
@@ -831,7 +828,6 @@
     const next = normalize(report);
     setValue("work-report-id", next.id);
     setValue("wr-report-date", next.reportDate);
-    setValue("wr-report-number", next.reportNumber);
     setValue("wr-service-order", next.serviceOrderNumber);
     setValue("wr-order-date", next.orderDate);
     setValue("wr-customer", next.customerName);
@@ -854,7 +850,6 @@
     setValue("wr-overtime", next.overtime);
     setValue("wr-technicians", next.technicians);
     setValue("wr-km", next.drivenKm);
-    setValue("wr-vehicle-costs", next.vehicleCosts);
     setValue("wr-pressure", next.pressureBar);
     setChecked("wr-consent", next.consentStorage);
     setChecked("wr-maintenance", next.annualMaintenance);
@@ -1099,7 +1094,6 @@
     context.font = "20px Arial";
     context.textBaseline = "top";
 
-    drawCanvasText(context, report.reportNumber, 258, 241, 310, 22);
     drawCanvasText(context, report.customerName, 213, 294, 360, 20);
     drawCanvasText(context, report.company, 213, 326, 360, 20);
     drawCanvasText(context, report.street, 213, 359, 360, 20);
@@ -1107,10 +1101,9 @@
     drawCanvasText(context, report.serviceOrderNumber, 778, 88, 330, 20);
     drawCanvasText(context, formatReportDate(report.orderDate), 718, 130, 385, 20);
     drawCanvasText(context, report.site, 718, 174, 385, 20);
-    drawCanvasText(context, euro(report.vehicleCosts), 592, 206, 103, 20);
     drawCanvasText(context, report.drivenKm, 703, 206, 112, 20);
     drawCanvasText(context, report.systemType, 703, 257, 400, 21);
-    drawCanvasText(context, report.serialYear, 718, 303, 388, 21);
+    drawCanvasText(context, report.serialYear, 728, 303, 378, 21);
     drawCanvasText(context, report.oldDefects, 713, 347, 395, 21);
     drawCanvasText(context, report.manufacturer, 703, 390, 185, 21);
     drawCanvasText(context, report.manufacturerWarranty, 1013, 390, 95, 21);
