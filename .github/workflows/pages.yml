@@ -28,9 +28,9 @@ jobs:
       - name: Prepare static files
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js manifest.webmanifest supabase-config.js .nojekyll _site/
+          cp index.html styles.css *.js manifest.webmanifest supabase-config.js .nojekyll _site/
           mkdir -p _site/supabase
-          cp supabase/schema.sql _site/supabase/schema.sql
+          cp supabase/*.sql _site/supabase/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
