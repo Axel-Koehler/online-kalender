@@ -601,7 +601,7 @@
               ${templateInput("wr-postal-city", 210, 388, 365, 24)}
               ${templateInput("wr-service-order", 800, 70, 300, 24)}
               ${templateInput("wr-order-date", 800, 120, 300, 24, "date")}
-              ${templateInput("wr-site", 715, 170, 392, 24)}
+              ${templateInput("wr-site", 800, 160, 300, 24)}
               ${templateInput("wr-vehicle-costs", 590, 202, 105, 24, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
               ${templateInput("wr-km", 700, 202, 120, 24, "number", "min=\"0\" step=\"1\"")}
               ${templateInput("wr-system-type", 700, 253, 410, 25)}
