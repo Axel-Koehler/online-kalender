@@ -7,6 +7,24 @@
   const TEMPLATE_WIDTH = 1190;
   const TEMPLATE_HEIGHT = 1682;
   const COLUMNS = "id,report_date,customer,report_number,data,created_at,updated_at";
+  const CHECK_FIELDS = [
+    { id: "wr-consent", x: 391, y: 1400 },
+    { id: "wr-maintenance", x: 672, y: 1400 },
+    { id: "wr-service-finished-yes", x: 391, y: 1448 },
+    { id: "wr-service-finished-no", x: 445, y: 1448 },
+    { id: "wr-center-yes", x: 531, y: 1448 },
+    { id: "wr-center-no", x: 585, y: 1448 },
+    { id: "wr-electrical-test-yes", x: 391, y: 1473 },
+    { id: "wr-electrical-test-no", x: 445, y: 1473 },
+    { id: "wr-acceptance-yes", x: 391, y: 1499 },
+    { id: "wr-acceptance-no", x: 445, y: 1499 },
+    { id: "wr-own-risk-yes", x: 391, y: 1524 },
+    { id: "wr-own-risk-no", x: 445, y: 1524 },
+    { id: "wr-defects-notice-yes", x: 391, y: 1550 },
+    { id: "wr-defects-notice-no", x: 445, y: 1550 },
+    { id: "wr-leak-test-yes", x: 391, y: 1575 },
+    { id: "wr-leak-test-no", x: 445, y: 1575 }
+  ];
   let channel = null;
   let editingId = null;
 
@@ -359,6 +377,7 @@
       email: "",
       technicianSignature: "",
       customerSignature: "",
+      checkmarks: Object.fromEntries(CHECK_FIELDS.map((field) => [field.id, false])),
       workRows: Array.from({ length: 8 }, () => ({ date: "", start: "", end: "", travel: "", hours: "", overtime: "", technicians: "" })),
       materials: Array.from({ length: 11 }, () => ({ date: "", qty: "", description: "", price: "", sum: "" }))
     };
@@ -370,6 +389,23 @@
     base.reportDate = String(record?.report_date || base.reportDate || todayKey());
     base.reportNumber = String(record?.report_number || base.reportNumber || "").trim();
     base.customerName = String(record?.customer || base.customerName || "").trim();
+    base.checkmarks = { ...Object.fromEntries(CHECK_FIELDS.map((field) => [field.id, false])), ...(base.checkmarks || {}) };
+    base.checkmarks["wr-consent"] = Boolean(base.checkmarks["wr-consent"] || base.consentStorage);
+    base.checkmarks["wr-maintenance"] = Boolean(base.checkmarks["wr-maintenance"] || base.annualMaintenance);
+    base.checkmarks["wr-service-finished-yes"] = Boolean(base.checkmarks["wr-service-finished-yes"] || base.serviceFinished);
+    base.checkmarks["wr-electrical-test-yes"] = Boolean(base.checkmarks["wr-electrical-test-yes"] || base.electricalTest);
+    base.checkmarks["wr-acceptance-yes"] = Boolean(base.checkmarks["wr-acceptance-yes"] || base.acceptanceDone);
+    base.checkmarks["wr-own-risk-yes"] = Boolean(base.checkmarks["wr-own-risk-yes"] || base.ownRisk);
+    base.checkmarks["wr-defects-notice-yes"] = Boolean(base.checkmarks["wr-defects-notice-yes"] || base.defectsNotice);
+    base.checkmarks["wr-leak-test-yes"] = Boolean(base.checkmarks["wr-leak-test-yes"] || base.leakTest);
+    base.consentStorage = base.checkmarks["wr-consent"];
+    base.annualMaintenance = base.checkmarks["wr-maintenance"];
+    base.serviceFinished = base.checkmarks["wr-service-finished-yes"];
+    base.electricalTest = base.checkmarks["wr-electrical-test-yes"];
+    base.acceptanceDone = base.checkmarks["wr-acceptance-yes"];
+    base.ownRisk = base.checkmarks["wr-own-risk-yes"];
+    base.defectsNotice = base.checkmarks["wr-defects-notice-yes"];
+    base.leakTest = base.checkmarks["wr-leak-test-yes"];
     base.workRows = Array.isArray(base.workRows) ? base.workRows.slice(0, 8) : [];
     if (base.workRows.length === 0) {
       base.workRows.push({
@@ -660,15 +696,7 @@
                 ].join("");
               }).join("")}
               ${templateTextarea("wr-description", 76, 1229, 1048, 161)}
-              ${templateCheck("wr-consent", 391, 1439)}
-              ${templateCheck("wr-maintenance", 675, 1439)}
-              ${templateCheck("wr-service-finished", 391, 1488)}
-              ${templateCheck("wr-electrical-test", 391, 1517)}
-              ${templateCheck("wr-acceptance", 391, 1546)}
-              ${templateCheck("wr-own-risk", 391, 1575)}
-              ${templateCheck("wr-defects-notice", 391, 1604)}
-              ${templateCheck("wr-leak-test", 391, 1632)}
-              ${templateCheck("wr-additional-sheet", 535, 1518)}
+              ${CHECK_FIELDS.map((field) => templateCheck(field.id, field.x, field.y)).join("")}
               ${signaturePad("wr-technician-signature", 495, 1588, 140, 48)}
               ${signaturePad("wr-customer-signature", 668, 1588, 445, 48)}
             </div>
@@ -813,6 +841,7 @@
       technicians: value(workRowId("wr-technicians", index))
     }));
     const firstWorkRow = workRows[0] || {};
+    const checkmarks = Object.fromEntries(CHECK_FIELDS.map((field) => [field.id, checked(field.id)]));
     return normalize({
       id,
       reportDate: firstWorkRow.date || todayKey(),
@@ -840,20 +869,21 @@
       drivenKm: value("wr-km"),
       vehicleCosts: "",
       pressureBar: "",
-      consentStorage: checked("wr-consent"),
-      annualMaintenance: checked("wr-maintenance"),
-      serviceFinished: checked("wr-service-finished"),
-      electricalTest: checked("wr-electrical-test"),
-      acceptanceDone: checked("wr-acceptance"),
-      ownRisk: checked("wr-own-risk"),
-      defectsNotice: checked("wr-defects-notice"),
-      leakTest: checked("wr-leak-test"),
-      additionalSheet: checked("wr-additional-sheet"),
+      consentStorage: checkmarks["wr-consent"],
+      annualMaintenance: checkmarks["wr-maintenance"],
+      serviceFinished: checkmarks["wr-service-finished-yes"],
+      electricalTest: checkmarks["wr-electrical-test-yes"],
+      acceptanceDone: checkmarks["wr-acceptance-yes"],
+      ownRisk: checkmarks["wr-own-risk-yes"],
+      defectsNotice: checkmarks["wr-defects-notice-yes"],
+      leakTest: checkmarks["wr-leak-test-yes"],
+      additionalSheet: checkmarks["wr-center-yes"],
       netAmount: "",
       vatAmount: "",
       totalAmount: "",
       technicianSignature: signatureData("wr-technician-signature"),
       customerSignature: signatureData("wr-customer-signature"),
+      checkmarks,
       workRows,
       materials: Array.from({ length: 11 }, (_, index) => ({
         date: value(`wr-material-date-${index}`),
@@ -893,15 +923,7 @@
     const description = document.querySelector("#wr-description");
     if (description) description.value = next.workDescription;
     setValue("wr-km", next.drivenKm);
-    setChecked("wr-consent", next.consentStorage);
-    setChecked("wr-maintenance", next.annualMaintenance);
-    setChecked("wr-service-finished", next.serviceFinished);
-    setChecked("wr-electrical-test", next.electricalTest);
-    setChecked("wr-acceptance", next.acceptanceDone);
-    setChecked("wr-own-risk", next.ownRisk);
-    setChecked("wr-defects-notice", next.defectsNotice);
-    setChecked("wr-leak-test", next.leakTest);
-    setChecked("wr-additional-sheet", next.additionalSheet);
+    CHECK_FIELDS.forEach((field) => setChecked(field.id, next.checkmarks[field.id]));
     setSignature("wr-technician-signature", next.technicianSignature);
     setSignature("wr-customer-signature", next.customerSignature);
     next.materials.forEach((material, index) => {
@@ -1165,15 +1187,7 @@
 
     drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 156, 20);
 
-    drawCanvasCheck(context, report.consentStorage, 391, 1439);
-    drawCanvasCheck(context, report.annualMaintenance, 675, 1439);
-    drawCanvasCheck(context, report.serviceFinished, 391, 1488);
-    drawCanvasCheck(context, report.electricalTest, 391, 1517);
-    drawCanvasCheck(context, report.acceptanceDone, 391, 1546);
-    drawCanvasCheck(context, report.ownRisk, 391, 1575);
-    drawCanvasCheck(context, report.defectsNotice, 391, 1604);
-    drawCanvasCheck(context, report.leakTest, 391, 1632);
-    drawCanvasCheck(context, report.additionalSheet, 535, 1518);
+    CHECK_FIELDS.forEach((field) => drawCanvasCheck(context, report.checkmarks[field.id], field.x, field.y));
 
     await drawSignature(context, report.technicianSignature, 495, 1588, 140, 48);
     await drawSignature(context, report.customerSignature, 668, 1588, 445, 48);
