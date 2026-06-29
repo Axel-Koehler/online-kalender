@@ -359,6 +359,7 @@
       email: "",
       technicianSignature: "",
       customerSignature: "",
+      workRows: Array.from({ length: 8 }, () => ({ date: "", start: "", end: "", travel: "", hours: "", overtime: "", technicians: "" })),
       materials: Array.from({ length: 5 }, () => ({ date: "", qty: "", description: "", price: "", sum: "" }))
     };
   }
@@ -369,6 +370,36 @@
     base.reportDate = String(record?.report_date || base.reportDate || todayKey());
     base.reportNumber = String(record?.report_number || base.reportNumber || "").trim();
     base.customerName = String(record?.customer || base.customerName || "").trim();
+    base.workRows = Array.isArray(base.workRows) ? base.workRows.slice(0, 8) : [];
+    if (base.workRows.length === 0) {
+      base.workRows.push({
+        date: base.reportDate || "",
+        start: base.startTime || "",
+        end: base.endTime || "",
+        travel: base.travelTime || "",
+        hours: base.workHours || "",
+        overtime: base.overtime || "",
+        technicians: base.technicians || ""
+      });
+    }
+    while (base.workRows.length < 8) base.workRows.push({ date: "", start: "", end: "", travel: "", hours: "", overtime: "", technicians: "" });
+    base.workRows = base.workRows.map((row, index) => ({
+      date: String(row?.date || (index === 0 ? base.reportDate : "") || ""),
+      start: String(row?.start || (index === 0 ? base.startTime : "") || ""),
+      end: String(row?.end || (index === 0 ? base.endTime : "") || ""),
+      travel: String(row?.travel || (index === 0 ? base.travelTime : "") || ""),
+      hours: String(row?.hours || (index === 0 ? base.workHours : "") || ""),
+      overtime: String(row?.overtime || (index === 0 ? base.overtime : "") || ""),
+      technicians: String(row?.technicians || (index === 0 ? base.technicians : "") || "")
+    }));
+    const firstWorkRow = base.workRows[0] || {};
+    base.reportDate = firstWorkRow.date || base.reportDate;
+    base.startTime = firstWorkRow.start || base.startTime;
+    base.endTime = firstWorkRow.end || base.endTime;
+    base.travelTime = firstWorkRow.travel || base.travelTime;
+    base.workHours = firstWorkRow.hours || base.workHours;
+    base.overtime = firstWorkRow.overtime || base.overtime;
+    base.technicians = firstWorkRow.technicians || base.technicians;
     base.materials = Array.isArray(base.materials) ? base.materials.slice(0, 5) : [];
     while (base.materials.length < 5) base.materials.push({ date: "", qty: "", description: "", price: "", sum: "" });
     return base;
@@ -454,6 +485,22 @@
 
   function templateInput(id, x, y, width, height, type = "text", options = "") {
     return `<input class="wr-template-input" id="${id}" type="${type}" style="${pos(x, y, width, height)}" ${options}>`;
+  }
+
+  function workRowId(baseId, index) {
+    return index === 0 ? baseId : `${baseId}-${index}`;
+  }
+
+  function templateWorkRow(index, y) {
+    return [
+      templateInput(workRowId("wr-report-date", index), 78, y, 90, 25, "date"),
+      templateInput(workRowId("wr-start", index), 178, y, 100, 25, "time"),
+      templateInput(workRowId("wr-end", index), 288, y, 100, 25, "time"),
+      templateInput(workRowId("wr-travel", index), 410, y, 95, 25),
+      templateInput(workRowId("wr-hours", index), 520, y, 95, 25),
+      templateInput(workRowId("wr-overtime", index), 625, y, 65, 25),
+      templateInput(workRowId("wr-technicians", index), 765, y, 60, 25, "number", "min=\"0\" step=\"1\"")
+    ].join("");
   }
 
   function templateTextarea(id, x, y, width, height) {
@@ -606,15 +653,10 @@
               ${templateInput("wr-old-defects", 710, 333, 400, 25)}
               ${templateInput("wr-manufacturer", 700, 376, 190, 25)}
               ${templateInput("wr-warranty", 1010, 376, 100, 25)}
-              ${templateInput("wr-report-date", 78, 454, 90, 25, "date")}
-              ${templateInput("wr-start", 178, 454, 100, 25, "time")}
-              ${templateInput("wr-end", 288, 454, 100, 25, "time")}
-              ${templateInput("wr-travel", 410, 454, 95, 25)}
-              ${templateInput("wr-hours", 520, 454, 95, 25)}
-              ${templateInput("wr-overtime", 625, 454, 65, 25)}
-              ${templateInput("wr-technicians", 765, 454, 60, 25, "number", "min=\"0\" step=\"1\"")}
+              ${[454, 488, 522, 556, 590, 624, 658, 692].map((y, index) => templateWorkRow(index, y)).join("")}
               ${Array.from({ length: 5 }, (_, index) => {
-                const y = 805 + index * 41;
+                const materialRows = [805, 845, 885, 924, 964];
+                const y = materialRows[index];
                 return [
                   templateInput(`wr-material-qty-${index}`, 78, y, 92, 26),
                   templateInput(`wr-material-description-${index}`, 180, y, 640, 26),
@@ -627,7 +669,7 @@
               ${templateInput("wr-vat", 930, 1160, 110, 25, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
               ${templateInput("wr-total", 930, 1198, 110, 28, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
               ${templateInput("wr-pressure", 580, 1228, 85, 22)}
-              ${templateTextarea("wr-description", 76, 1260, 1040, 150)}
+              ${templateTextarea("wr-description", 76, 1260, 1048, 150)}
               ${templateCheck("wr-consent", 391, 1439)}
               ${templateCheck("wr-maintenance", 675, 1439)}
               ${templateCheck("wr-service-finished", 391, 1488)}
@@ -773,9 +815,19 @@
 
   function readForm() {
     const id = value("work-report-id") || crypto.randomUUID();
+    const workRows = Array.from({ length: 8 }, (_, index) => ({
+      date: value(workRowId("wr-report-date", index)),
+      start: value(workRowId("wr-start", index)),
+      end: value(workRowId("wr-end", index)),
+      travel: value(workRowId("wr-travel", index)),
+      hours: value(workRowId("wr-hours", index)),
+      overtime: value(workRowId("wr-overtime", index)),
+      technicians: value(workRowId("wr-technicians", index))
+    }));
+    const firstWorkRow = workRows[0] || {};
     return normalize({
       id,
-      reportDate: value("wr-report-date") || todayKey(),
+      reportDate: firstWorkRow.date || todayKey(),
       reportNumber: "",
       serviceOrderNumber: value("wr-service-order"),
       orderDate: value("wr-order-date"),
@@ -791,12 +843,12 @@
       manufacturerWarranty: value("wr-warranty"),
       oldDefects: value("wr-old-defects"),
       workDescription: document.querySelector("#wr-description")?.value?.trim() || "",
-      startTime: value("wr-start"),
-      endTime: value("wr-end"),
-      travelTime: value("wr-travel"),
-      workHours: value("wr-hours"),
-      overtime: value("wr-overtime"),
-      technicians: value("wr-technicians"),
+      startTime: firstWorkRow.start,
+      endTime: firstWorkRow.end,
+      travelTime: firstWorkRow.travel,
+      workHours: firstWorkRow.hours,
+      overtime: firstWorkRow.overtime,
+      technicians: firstWorkRow.technicians,
       drivenKm: value("wr-km"),
       vehicleCosts: "",
       pressureBar: value("wr-pressure"),
@@ -814,6 +866,7 @@
       totalAmount: value("wr-total"),
       technicianSignature: signatureData("wr-technician-signature"),
       customerSignature: signatureData("wr-customer-signature"),
+      workRows,
       materials: Array.from({ length: 5 }, (_, index) => ({
         date: value(`wr-material-date-${index}`),
         qty: value(`wr-material-qty-${index}`),
@@ -827,7 +880,15 @@
   function fillForm(report) {
     const next = normalize(report);
     setValue("work-report-id", next.id);
-    setValue("wr-report-date", next.reportDate);
+    next.workRows.forEach((row, index) => {
+      setValue(workRowId("wr-report-date", index), row.date);
+      setValue(workRowId("wr-start", index), row.start);
+      setValue(workRowId("wr-end", index), row.end);
+      setValue(workRowId("wr-travel", index), row.travel);
+      setValue(workRowId("wr-hours", index), row.hours);
+      setValue(workRowId("wr-overtime", index), row.overtime);
+      setValue(workRowId("wr-technicians", index), row.technicians);
+    });
     setValue("wr-service-order", next.serviceOrderNumber);
     setValue("wr-order-date", next.orderDate);
     setValue("wr-customer", next.customerName);
@@ -843,12 +904,6 @@
     setValue("wr-old-defects", next.oldDefects);
     const description = document.querySelector("#wr-description");
     if (description) description.value = next.workDescription;
-    setValue("wr-start", next.startTime);
-    setValue("wr-end", next.endTime);
-    setValue("wr-travel", next.travelTime);
-    setValue("wr-hours", next.workHours);
-    setValue("wr-overtime", next.overtime);
-    setValue("wr-technicians", next.technicians);
     setValue("wr-km", next.drivenKm);
     setValue("wr-pressure", next.pressureBar);
     setChecked("wr-consent", next.consentStorage);
@@ -1084,6 +1139,7 @@
   }
 
   async function renderReportCanvas(report) {
+    report = normalize(report);
     const image = await loadImage(TEMPLATE_IMAGE);
     const canvas = document.createElement("canvas");
     canvas.width = TEMPLATE_WIDTH;
@@ -1107,16 +1163,20 @@
     drawCanvasText(context, report.oldDefects, 713, 337, 395, 21);
     drawCanvasText(context, report.manufacturer, 703, 380, 185, 21);
     drawCanvasText(context, report.manufacturerWarranty, 1013, 380, 95, 21);
-    drawCanvasText(context, formatReportDate(report.reportDate), 81, 458, 86, 19);
-    drawCanvasText(context, report.startTime, 181, 458, 94, 19);
-    drawCanvasText(context, report.endTime, 291, 458, 94, 19);
-    drawCanvasText(context, report.travelTime, 413, 458, 90, 19);
-    drawCanvasText(context, report.workHours, 523, 458, 90, 19);
-    drawCanvasText(context, report.overtime, 628, 458, 60, 19);
-    drawCanvasText(context, report.technicians, 768, 458, 55, 19);
+    report.workRows.forEach((row, index) => {
+      const y = 458 + index * 34;
+      drawCanvasText(context, formatReportDate(row.date), 81, y, 86, 19);
+      drawCanvasText(context, row.start, 181, y, 94, 19);
+      drawCanvasText(context, row.end, 291, y, 94, 19);
+      drawCanvasText(context, row.travel, 413, y, 90, 19);
+      drawCanvasText(context, row.hours, 523, y, 90, 19);
+      drawCanvasText(context, row.overtime, 628, y, 60, 19);
+      drawCanvasText(context, row.technicians, 768, y, 55, 19);
+    });
 
     report.materials.forEach((item, index) => {
-      const y = 809 + index * 41;
+      const materialRows = [809, 849, 889, 928, 968];
+      const y = materialRows[index];
       drawCanvasText(context, item.qty, 81, y, 88, 20);
       drawCanvasText(context, item.description, 183, y, 632, 20);
       drawCanvasText(context, euro(item.price), 835, y, 90, 20);
@@ -1127,7 +1187,7 @@
     drawCanvasText(context, euro(report.vatAmount), 933, 1164, 104, 20);
     drawCanvasText(context, euro(report.totalAmount), 933, 1202, 104, 22);
     drawCanvasText(context, report.pressureBar, 583, 1232, 80, 18);
-    drawCanvasParagraph(context, report.workDescription, 80, 1264, 1030, 145, 20);
+    drawCanvasParagraph(context, report.workDescription, 80, 1264, 1038, 145, 20);
 
     drawCanvasCheck(context, report.consentStorage, 391, 1439);
     drawCanvasCheck(context, report.annualMaintenance, 675, 1439);
