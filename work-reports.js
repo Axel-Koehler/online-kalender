@@ -599,7 +599,7 @@
               ${templateInput("wr-company", 210, 322, 365, 24)}
               ${templateInput("wr-street", 210, 355, 365, 24)}
               ${templateInput("wr-postal-city", 210, 388, 365, 24)}
-              ${templateInput("wr-service-order", 780, 80, 300, 24)}
+              ${templateInput("wr-service-order", 800, 70, 300, 24)}
               ${templateInput("wr-order-date", 715, 126, 392, 24, "date")}
               ${templateInput("wr-site", 715, 170, 392, 24)}
               ${templateInput("wr-vehicle-costs", 590, 202, 105, 24, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
