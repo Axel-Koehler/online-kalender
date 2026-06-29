@@ -597,10 +597,10 @@
               ${templateInput("wr-company", 210, 312, 365, 24)}
               ${templateInput("wr-street", 210, 345, 365, 24)}
               ${templateInput("wr-postal-city", 210, 378, 365, 24)}
-              ${templateInput("wr-service-order", 775, 74, 335, 24)}
+              ${templateInput("wr-service-order", 790, 74, 305, 24)}
               ${templateInput("wr-order-date", 715, 116, 392, 24, "date")}
               ${templateInput("wr-site", 715, 160, 392, 24)}
-              ${templateInput("wr-km", 700, 192, 120, 24, "number", "min=\"0\" step=\"1\"")}
+              ${templateInput("wr-km", 700, 202, 120, 24, "number", "min=\"0\" step=\"1\"")}
               ${templateInput("wr-system-type", 700, 243, 410, 25)}
               ${templateInput("wr-serial-year", 725, 289, 385, 25)}
               ${templateInput("wr-old-defects", 710, 333, 400, 25)}
@@ -1098,10 +1098,10 @@
     drawCanvasText(context, report.company, 213, 316, 360, 20);
     drawCanvasText(context, report.street, 213, 349, 360, 20);
     drawCanvasText(context, report.postalCity, 213, 382, 360, 20);
-    drawCanvasText(context, report.serviceOrderNumber, 778, 78, 330, 20);
+    drawCanvasText(context, report.serviceOrderNumber, 793, 78, 300, 20);
     drawCanvasText(context, formatReportDate(report.orderDate), 718, 120, 385, 20);
     drawCanvasText(context, report.site, 718, 164, 385, 20);
-    drawCanvasText(context, report.drivenKm, 703, 196, 112, 20);
+    drawCanvasText(context, report.drivenKm, 703, 206, 112, 20);
     drawCanvasText(context, report.systemType, 703, 247, 400, 21);
     drawCanvasText(context, report.serialYear, 728, 293, 378, 21);
     drawCanvasText(context, report.oldDefects, 713, 337, 395, 21);
