@@ -570,7 +570,6 @@
               ${field("wr-overtime", "Überstunden")}
               ${field("wr-technicians", "Anzahl Monteure", "number", "min=\"0\" step=\"1\"")}
               ${field("wr-km", "Gefahrene km", "number", "min=\"0\" step=\"1\"")}
-              ${field("wr-pressure", "Dichtheitsprüfung bar")}
             </div>
           </section>
 
@@ -599,9 +598,6 @@
           <section class="work-report-group">
             <span class="work-report-group-title">Beträge</span>
             <div class="work-report-fields">
-              ${field("wr-net", "Nettosumme", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-              ${field("wr-vat", "+ MwSt.", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-              ${field("wr-total", "Gesamtbetrag", "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
             </div>
           </section>
 
@@ -665,11 +661,7 @@
                   templateInput(`wr-material-date-${index}`, 0, 0, 1, 1, "date", "tabindex=\"-1\" aria-hidden=\"true\"")
                 ].join("");
               }).join("")}
-              ${templateInput("wr-net", 930, 1120, 110, 25, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-              ${templateInput("wr-vat", 930, 1160, 110, 25, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-              ${templateInput("wr-total", 930, 1198, 110, 28, "number", "min=\"0\" step=\"0.01\" inputmode=\"decimal\"")}
-              ${templateInput("wr-pressure", 580, 1228, 85, 22)}
-              ${templateTextarea("wr-description", 76, 1260, 1048, 150)}
+              ${templateTextarea("wr-description", 76, 1229, 1048, 181)}
               ${templateCheck("wr-consent", 391, 1439)}
               ${templateCheck("wr-maintenance", 675, 1439)}
               ${templateCheck("wr-service-finished", 391, 1488)}
@@ -851,7 +843,7 @@
       technicians: firstWorkRow.technicians,
       drivenKm: value("wr-km"),
       vehicleCosts: "",
-      pressureBar: value("wr-pressure"),
+      pressureBar: "",
       consentStorage: checked("wr-consent"),
       annualMaintenance: checked("wr-maintenance"),
       serviceFinished: checked("wr-service-finished"),
@@ -861,9 +853,9 @@
       defectsNotice: checked("wr-defects-notice"),
       leakTest: checked("wr-leak-test"),
       additionalSheet: checked("wr-additional-sheet"),
-      netAmount: value("wr-net"),
-      vatAmount: value("wr-vat"),
-      totalAmount: value("wr-total"),
+      netAmount: "",
+      vatAmount: "",
+      totalAmount: "",
       technicianSignature: signatureData("wr-technician-signature"),
       customerSignature: signatureData("wr-customer-signature"),
       workRows,
@@ -905,7 +897,6 @@
     const description = document.querySelector("#wr-description");
     if (description) description.value = next.workDescription;
     setValue("wr-km", next.drivenKm);
-    setValue("wr-pressure", next.pressureBar);
     setChecked("wr-consent", next.consentStorage);
     setChecked("wr-maintenance", next.annualMaintenance);
     setChecked("wr-service-finished", next.serviceFinished);
@@ -915,9 +906,6 @@
     setChecked("wr-defects-notice", next.defectsNotice);
     setChecked("wr-leak-test", next.leakTest);
     setChecked("wr-additional-sheet", next.additionalSheet);
-    setValue("wr-net", next.netAmount);
-    setValue("wr-vat", next.vatAmount);
-    setValue("wr-total", next.totalAmount);
     setSignature("wr-technician-signature", next.technicianSignature);
     setSignature("wr-customer-signature", next.customerSignature);
     next.materials.forEach((material, index) => {
@@ -1183,11 +1171,7 @@
       drawCanvasText(context, euro(item.sum), 939, y, 106, 20);
     });
 
-    drawCanvasText(context, euro(report.netAmount), 933, 1124, 104, 20);
-    drawCanvasText(context, euro(report.vatAmount), 933, 1164, 104, 20);
-    drawCanvasText(context, euro(report.totalAmount), 933, 1202, 104, 22);
-    drawCanvasText(context, report.pressureBar, 583, 1232, 80, 18);
-    drawCanvasParagraph(context, report.workDescription, 80, 1264, 1038, 145, 20);
+    drawCanvasParagraph(context, report.workDescription, 80, 1233, 1038, 176, 20);
 
     drawCanvasCheck(context, report.consentStorage, 391, 1439);
     drawCanvasCheck(context, report.annualMaintenance, 675, 1439);
@@ -1334,7 +1318,7 @@
     y = pair(pdf, "Beginn / Ende", `${report.startTime || "-"} / ${report.endTime || "-"}`, "Fahrzeit", report.travelTime, y);
     y = pair(pdf, "Arbeitsstunden", report.workHours, "Überstunden", report.overtime, y);
     y = pair(pdf, "Anzahl Monteure", report.technicians, "Gefahrene km", report.drivenKm, y);
-    y = pair(pdf, "Kfz-Kosten", euro(report.vehicleCosts), "Dichtheitsprüfung bar", report.pressureBar, y);
+    y = pair(pdf, "Kfz-Kosten", euro(report.vehicleCosts), "", "", y);
 
     y = section(pdf, "Materialverbrauch / Artikelbezeichnung", y - 6);
     pdf.text("Datum", 46, y, 8);
@@ -1357,8 +1341,6 @@
     y = paragraph(pdf, checksText(report), 46, y, 500, 9);
 
     y = section(pdf, "Beträge", y - 6);
-    y = pair(pdf, "Nettosumme", euro(report.netAmount), "+ MwSt.", euro(report.vatAmount), y);
-    y = pair(pdf, "Gesamtbetrag", euro(report.totalAmount), "", "", y);
 
     y = Math.min(y - 16, 120);
     pdf.line(46, y, 250, y);
