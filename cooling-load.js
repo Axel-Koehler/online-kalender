@@ -46,13 +46,10 @@
       gap: 10px;
     }
 
-    .cooling-preset-field {
-      grid-column: span 2;
-    }
-
     .cooling-preset-field select[multiple] {
-      min-height: 132px;
-      padding-block: 8px;
+      min-height: var(--input-height, 44px);
+      height: var(--input-height, 44px);
+      overflow: hidden;
     }
 
     .cooling-rooms {
@@ -304,9 +301,12 @@
   const DEVICE_PRESETS = [
     [0, "Keine Geräte - 0 W"],
     [65, "Laptop - 65 W"],
+    [120, "Kühlschrank - 120 W"],
     [150, "Fernseher - 150 W"],
     [250, "PC Arbeitsplatz - 250 W"],
     [350, "PC + Monitor - 350 W"],
+    [800, "Mikrowelle - 800 W"],
+    [2000, "Herd - 2.000 W"],
     [500, "Küchengeräte klein - 500 W"],
     [800, "Viele Geräte - 800 W"]
   ];
@@ -716,7 +716,7 @@
       const text = Array.isArray(option) ? option[1] : option;
       return `<option value="${value}">${text}</option>`;
     }).join("");
-    return `<label class="field cooling-preset-field"><span>${label}</span><select id="${id}" multiple size="7">${items}</select></label>`;
+    return `<label class="field cooling-preset-field"><span>${label}</span><select id="${id}" multiple size="1">${items}</select></label>`;
   }
 
   function setValue(id, value) {
@@ -818,7 +818,7 @@
         <label class="field"><span>Dachfläche m²</span><input class="cooling-room-roof" type="number" step="0.01" value="${room.roofArea || ""}"></label>
         <label class="field"><span>Dämmung</span><select class="cooling-room-insulation">${optionList([["schlecht", "Schlecht"], ["mittel", "Mittel"], ["gut", "Gut"], ["sehr gut", "Sehr gut"]], room.insulation)}</select></label>
         <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
-        <label class="field cooling-preset-field"><span>Typische Geräte</span><select class="cooling-room-device-preset" multiple size="7">${optionList(DEVICE_PRESETS, "")}</select></label>
+        <label class="field cooling-preset-field"><span>Typische Geräte</span><select class="cooling-room-device-preset" multiple size="1">${optionList(DEVICE_PRESETS, "")}</select></label>
         <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
         <label class="field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
         <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
