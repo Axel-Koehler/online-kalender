@@ -50,8 +50,14 @@
       position: relative;
     }
 
+    .cooling-shell .field select {
+      min-height: var(--input-height, 44px);
+      height: var(--input-height, 44px);
+    }
+
     .cooling-device-picker summary {
       min-height: var(--input-height, 44px);
+      height: var(--input-height, 44px);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -113,6 +119,10 @@
       min-height: var(--input-height, 44px);
       height: var(--input-height, 44px);
       overflow: hidden;
+    }
+
+    .cooling-lighting-preset-field {
+      margin-right: 14px;
     }
 
     .cooling-rooms {
@@ -696,7 +706,7 @@
               ${field("cooling-people", "Personen", "number", "", "1")}
               ${devicePicker("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
               ${field("cooling-devices", "Geräte W", "number", "", "1")}
-              ${select("cooling-lighting-preset", "Typische Beleuchtung", LIGHTING_PRESETS)}
+              ${select("cooling-lighting-preset", "Typische Beleuchtung", LIGHTING_PRESETS, "cooling-lighting-preset-field")}
               ${field("cooling-lighting", "Beleuchtung W", "number", "", "1")}
               ${field("cooling-air-changes", "Luftwechsel 1/h", "number", "0.5", "0.1")}
               ${field("cooling-safety", "Zuschlag %", "number", "10", "1")}
@@ -764,13 +774,13 @@
     return `<label class="field"><span>${label}</span><input id="${id}" type="${type}" value="${value}"${stepAttr}></label>`;
   }
 
-  function select(id, label, options) {
+  function select(id, label, options, className = "") {
     const items = options.map((option) => {
       const value = Array.isArray(option) ? option[0] : option;
       const text = Array.isArray(option) ? option[1] : option;
       return `<option value="${value}">${text}</option>`;
     }).join("");
-    return `<label class="field"><span>${label}</span><select id="${id}">${items}</select></label>`;
+    return `<label class="field ${className}"><span>${label}</span><select id="${id}">${items}</select></label>`;
   }
 
   function devicePicker(id, label, options, className = "") {
@@ -895,7 +905,7 @@
         <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
         ${devicePicker("", "Typische Geräte", DEVICE_PRESETS, "cooling-room-device-preset")}
         <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
-        <label class="field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
+        <label class="field cooling-lighting-preset-field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
         <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
         <label class="field"><span>Luftwechsel 1/h</span><input class="cooling-room-air" type="number" step="0.1" value="${room.airChanges || 0.5}"></label>
       </div>
