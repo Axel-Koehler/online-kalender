@@ -941,13 +941,14 @@ h1 {
 }
 
 .maintenance-table {
+  --maintenance-columns: 1fr 1.2fr 0.92fr 0.65fr 0.82fr 0.78fr 0.78fr 0.82fr 0.82fr minmax(170px, auto);
   display: grid;
   gap: 8px;
 }
 
 .maintenance-row {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 0.92fr 0.65fr 0.82fr 0.78fr 0.78fr 0.82fr 0.82fr minmax(170px, auto);
+  grid-template-columns: var(--maintenance-columns);
   gap: 10px;
   align-items: center;
   min-height: 46px;
@@ -958,6 +959,8 @@ h1 {
 
 .maintenance-head {
   min-height: 36px;
+  grid-template-columns: var(--maintenance-columns);
+  align-items: center;
   color: var(--cyan);
   background: rgba(7, 11, 31, 0.96);
   font-size: 0.74rem;
@@ -966,17 +969,22 @@ h1 {
 }
 
 .maintenance-head span {
+  justify-self: start;
   text-align: left;
+  width: 100%;
 }
 
 .maintenance-row span {
+  justify-self: start;
   min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
   overflow-wrap: anywhere;
 }
 
 .maintenance-row > span:not(.maintenance-actions) {
-  justify-self: stretch;
-  text-align: left;
   width: 100%;
 }
 

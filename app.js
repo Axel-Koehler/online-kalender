@@ -889,7 +889,7 @@ function move(direction) {
 
 function updateRangeLabel() {
   if (state.view === "maintenance") {
-    elements.rangeLabel.textContent = "Wartungsliste für alle Benutzer";
+    elements.rangeLabel.textContent = "Wartungsliste";
     return;
   }
 
