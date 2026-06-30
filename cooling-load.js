@@ -99,6 +99,35 @@
       gap: 10px;
     }
 
+    .cooling-room-results {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 8px;
+    }
+
+    .cooling-room-result {
+      display: grid;
+      grid-template-columns: 1.2fr 0.7fr 0.9fr 0.9fr;
+      gap: 10px;
+      align-items: center;
+      padding: 9px;
+      border: 1px solid rgba(0, 217, 255, 0.22);
+      background: rgba(3, 6, 22, 0.42);
+    }
+
+    .cooling-room-result span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      overflow-wrap: anywhere;
+    }
+
+    .cooling-room-result strong {
+      color: var(--cyan);
+      font-size: 0.84rem;
+      font-weight: 400;
+      overflow-wrap: anywhere;
+    }
+
     .cooling-result-item {
       min-height: 72px;
       display: grid;
@@ -146,7 +175,7 @@
 
     .cooling-row {
       display: grid;
-      grid-template-columns: 0.85fr 1.1fr 1fr 0.7fr 0.75fr 0.75fr minmax(220px, auto);
+      grid-template-columns: 0.85fr 1.25fr 0.7fr 0.8fr 0.8fr minmax(220px, auto);
       gap: 10px;
       align-items: center;
       min-height: 46px;
@@ -194,6 +223,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .cooling-room-result {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .cooling-head {
         display: none;
       }
@@ -216,6 +249,7 @@
     @media (max-width: 620px) {
       .cooling-fields,
       .cooling-result,
+      .cooling-room-result,
       .cooling-row,
       .cooling-row-actions {
         grid-template-columns: 1fr;
@@ -379,7 +413,17 @@
       airChanges: record.airChanges,
       windows: [{ area: record.windowArea, orientation: record.orientation, shading: record.shading }, ...(record.mainWindows || [])]
     });
-    const roomResults = [baseRoom, ...(record.rooms || [])].map((room) => calculateRoom(room, delta));
+    const safetyFactor = 1 + Math.max(0, record.safetyPercent) / 100;
+    const roomResults = [baseRoom, ...(record.rooms || [])].map((room, index) => {
+      const result = calculateRoom(room, delta);
+      const totalWatts = result.subtotalWatts * safetyFactor;
+      return {
+        ...result,
+        label: `Raum ${index + 1}`,
+        totalWatts: round(totalWatts),
+        recommendedKw: recommendedSize(totalWatts)
+      };
+    });
     const area = roomResults.reduce((sum, room) => sum + room.area, 0);
     const volume = roomResults.reduce((sum, room) => sum + room.volume, 0);
     const transmissionWatts = roomResults.reduce((sum, room) => sum + room.transmissionWatts, 0);
@@ -388,7 +432,7 @@
     const ventilationWatts = roomResults.reduce((sum, room) => sum + room.ventilationWatts, 0);
     const internalWatts = roomResults.reduce((sum, room) => sum + room.internalWatts, 0);
     const subtotalWatts = roomResults.reduce((sum, room) => sum + room.subtotalWatts, 0);
-    const totalWatts = subtotalWatts * (1 + Math.max(0, record.safetyPercent) / 100);
+    const totalWatts = subtotalWatts * safetyFactor;
     const recommendedKw = recommendedSize(totalWatts);
     return {
       area: round(area, 2),
@@ -467,7 +511,7 @@
       address: record.address,
       mainWindows: record.mainWindows,
       rooms: record.rooms,
-      roomName: record.roomName,
+      roomName: "",
       roomType: record.roomType,
       length: record.length,
       width: record.width,
@@ -511,7 +555,7 @@
       id: record.id,
       calculation_date: record.calculationDate || today(),
       customer: record.customer,
-      room_name: record.roomName,
+      room_name: "",
       area: record.calculation.area,
       total_watts: record.calculation.totalWatts,
       recommended_kw: record.calculation.recommendedKw,
@@ -536,7 +580,6 @@
               ${field("cooling-date", "Datum", "date")}
               ${field("cooling-customer", "Kunde")}
               ${field("cooling-address", "Anschrift")}
-              ${field("cooling-room-name", "Raum")}
               ${select("cooling-room-type", "Raumtyp", ["Wohnzimmer", "Schlafzimmer", "Büro", "Arbeitszimmer", "Kinderzimmer", "Küche", "Dachzimmer"])}
               ${field("cooling-target-temp", "Raumtemperatur °C", "number", "22", "0.5")}
               ${field("cooling-outside-temp", "Außentemperatur °C", "number", "35", "0.5")}
@@ -682,7 +725,6 @@
         <button class="text-button cooling-remove-room" type="button">Zimmer entfernen</button>
       </div>
       <div class="cooling-room-fields">
-        <label class="field"><span>Raum</span><input class="cooling-room-name" type="text" value="${escapeHtml(room.name)}"></label>
         <label class="field"><span>Raumtyp</span><select class="cooling-room-type">${optionList(["Wohnzimmer", "Schlafzimmer", "Büro", "Arbeitszimmer", "Kinderzimmer", "Küche", "Dachzimmer"], room.type)}</select></label>
         <label class="field"><span>Länge m</span><input class="cooling-room-length" type="number" step="0.01" value="${room.length || ""}"></label>
         <label class="field"><span>Breite m</span><input class="cooling-room-width" type="number" step="0.01" value="${room.width || ""}"></label>
@@ -763,7 +805,7 @@
 
   function readRooms() {
     return [...document.querySelectorAll("#cooling-extra-rooms > .cooling-room-card")].map((card) => normalizeRoomItem({
-      name: card.querySelector(".cooling-room-name")?.value,
+      name: "",
       type: card.querySelector(".cooling-room-type")?.value,
       length: card.querySelector(".cooling-room-length")?.value,
       width: card.querySelector(".cooling-room-width")?.value,
@@ -787,7 +829,7 @@
       address: value("cooling-address"),
       mainWindows: readAdditionalMainWindows(),
       rooms: readRooms(),
-      roomName: value("cooling-room-name"),
+      roomName: "",
       roomType: value("cooling-room-type"),
       length: value("cooling-length"),
       width: value("cooling-width"),
@@ -815,7 +857,6 @@
     setValue("cooling-date", next.calculationDate);
     setValue("cooling-customer", next.customer);
     setValue("cooling-address", next.address);
-    setValue("cooling-room-name", next.roomName);
     setValue("cooling-room-type", next.roomType);
     setValue("cooling-length", next.length || "");
     setValue("cooling-width", next.width || "");
@@ -844,17 +885,31 @@
     if (!result) return;
     const record = readForm();
     const calc = record.calculation;
+    const roomResults = (calc.rooms || []).map((room) => roomResultItem(room)).join("");
     result.innerHTML = `
       ${resultItem("Fläche", `${round(calc.area, 2).toLocaleString("de-DE")} m²`)}
       ${resultItem("Volumen", `${round(calc.volume, 2).toLocaleString("de-DE")} m³`)}
       ${resultItem("Gesamtkühllast", formatWatts(calc.totalWatts), true)}
       ${resultItem("Gerätegröße", formatKw(calc.recommendedKw), true)}
       ${resultItem("Sicherheitszuschlag", `${record.safetyPercent.toLocaleString("de-DE")} %`)}
+      <div class="cooling-room-results">${roomResults}</div>
     `;
   }
 
   function resultItem(label, value, main = false) {
     return `<div class="cooling-result-item${main ? " is-main" : ""}"><span>${label}</span><strong>${value}</strong></div>`;
+  }
+
+  function roomResultItem(room) {
+    const type = room.type || "Raum";
+    return `
+      <div class="cooling-room-result">
+        <strong>${escapeHtml(room.label || type)} - ${escapeHtml(type)}</strong>
+        <span>${round(room.area, 2).toLocaleString("de-DE")} m²</span>
+        <span>${formatWatts(room.totalWatts)}</span>
+        <span>${formatKw(room.recommendedKw)}</span>
+      </div>
+    `;
   }
 
   function setStatus(message) {
@@ -894,7 +949,7 @@
     table.className = "cooling-table";
     const head = document.createElement("div");
     head.className = "cooling-row cooling-head";
-    ["Datum", "Kunde", "Raum", "Fläche", "Kühllast", "Gerät", ""].forEach((label) => {
+    ["Datum", "Kunde", "Fläche", "Kühllast", "Gerät", ""].forEach((label) => {
       const item = document.createElement("span");
       item.textContent = label;
       head.append(item);
@@ -907,7 +962,6 @@
       row.append(
         cell(formatKey(record.calculationDate), "Datum"),
         cell(record.customer, "Kunde"),
-        cell(record.roomName, "Raum"),
         cell(`${round(record.calculation.area, 2).toLocaleString("de-DE")} m²`, "Fläche"),
         cell(formatWatts(record.calculation.totalWatts), "Kühllast"),
         cell(formatKw(record.calculation.recommendedKw), "Gerät")
@@ -1026,13 +1080,18 @@
   function reportLines(record) {
     const next = withCalculation(record);
     const calc = next.calculation;
+    const roomLines = (calc.rooms || []).flatMap((room) => [
+      `${room.label || "Raum"} (${room.type || "-"})`,
+      `  Fläche: ${round(room.area, 2).toLocaleString("de-DE")} m²`,
+      `  Kühllast: ${formatWatts(room.totalWatts)}`,
+      `  Empfohlene Gerätegröße: ${formatKw(room.recommendedKw)}`
+    ]);
     return [
       "Kühllastberechnung",
       "",
       `Datum: ${formatKey(next.calculationDate)}`,
       `Kunde: ${next.customer || "-"}`,
       `Anschrift: ${next.address || "-"}`,
-      `Raum: ${next.roomName || "-"} (${next.roomType})`,
       "",
       `Fläche: ${round(calc.area, 2).toLocaleString("de-DE")} m²`,
       `Volumen: ${round(calc.volume, 2).toLocaleString("de-DE")} m³`,
@@ -1047,6 +1106,9 @@
       `Zwischensumme: ${formatWatts(calc.subtotalWatts)}`,
       `Gesamtkühllast: ${formatWatts(calc.totalWatts)}`,
       `Empfohlene Gerätegröße: ${formatKw(calc.recommendedKw)}`,
+      "",
+      "Einzelberechnung je Raum:",
+      ...(roomLines.length ? roomLines : ["-"]),
       "",
       `Notiz: ${next.notes || "-"}`
     ];
@@ -1076,7 +1138,7 @@
   }
 
   function emailRecord(record) {
-    const subject = encodeURIComponent(`Kühllastberechnung ${record.customer || record.roomName || ""}`.trim());
+    const subject = encodeURIComponent(`Kühllastberechnung ${record.customer || ""}`.trim());
     const body = encodeURIComponent(reportLines(record).join("\n"));
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
