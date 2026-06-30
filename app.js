@@ -817,6 +817,10 @@ function eventsForDate(key) {
     .sort((a, b) => `${a.start} ${a.date}`.localeCompare(`${b.start} ${b.date}`));
 }
 
+function clearActiveTabs() {
+  document.querySelectorAll(".tab-button.is-active").forEach((tab) => tab.classList.remove("is-active"));
+}
+
 function setPage(nextPage) {
   if (nextPage === "maintenance") {
     state.view = "maintenance";
@@ -837,14 +841,13 @@ function setPage(nextPage) {
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
-  document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
-  document.querySelector("#orders-tab")?.classList.remove("is-active");
-  document.querySelector("#work-reports-tab")?.classList.remove("is-active");
-
-  elements.tabs.forEach((tab) => {
-    tab.classList.toggle("is-active", nextPage === "calendar" && tab.dataset.view === state.view);
-  });
-  elements.maintenancePageButton.classList.toggle("is-active", nextPage === "maintenance");
+  clearActiveTabs();
+  if (nextPage === "calendar") {
+    document.querySelector(`.tab-button[data-view="${state.view}"]`)?.classList.add("is-active");
+  }
+  if (nextPage === "maintenance") {
+    elements.maintenancePageButton.classList.add("is-active");
+  }
   elements.prevButton.hidden = nextPage !== "calendar";
   elements.nextButton.hidden = nextPage !== "calendar";
   elements.todayButton.hidden = nextPage !== "calendar";
@@ -854,10 +857,8 @@ function setPage(nextPage) {
 
 function setView(nextView) {
   state.view = nextView;
-  elements.viewTabs.forEach((tab) => {
-    tab.classList.toggle("is-active", tab.dataset.view === nextView);
-  });
-  elements.maintenancePageButton.classList.remove("is-active");
+  clearActiveTabs();
+  document.querySelector(`.tab-button[data-view="${nextView}"]`)?.classList.add("is-active");
   elements.weekView.hidden = nextView !== "week";
   elements.monthView.hidden = nextView !== "month";
   elements.yearView.hidden = nextView !== "year";

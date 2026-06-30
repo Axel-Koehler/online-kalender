@@ -185,7 +185,7 @@ p {
 
 h1 {
   color: rgba(247, 251, 255, 0.98);
-  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-size: clamp(1.05rem, 1.45vw, 1.45rem);
   font-weight: 400;
   line-height: 1;
   text-transform: uppercase;

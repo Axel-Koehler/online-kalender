@@ -1516,6 +1516,7 @@
   }
 
   function hideOtherViews() {
+    document.querySelectorAll(".tab-button.is-active").forEach((tab) => tab.classList.remove("is-active"));
     document.querySelector("#week-view").hidden = true;
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
