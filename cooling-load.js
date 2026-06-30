@@ -405,7 +405,7 @@
         <div class="cooling-shell">
           <form class="cooling-form" id="cooling-form">
             <div class="section-header">
-              <h2>Kühllast</h2>
+              <h2>Kühllastberechnung Klimaanlagen</h2>
               <button class="primary-button" type="submit">Speichern</button>
             </div>
             <input id="cooling-id" type="hidden">
@@ -825,7 +825,7 @@
     elements.nextButton.hidden = true;
     elements.todayButton.hidden = true;
     elements.newEventButton.hidden = true;
-    elements.rangeLabel.textContent = "Kühllast";
+    elements.rangeLabel.textContent = "Kühllastberechnung Klimaanlagen";
     renderList();
     subscribe();
     loadRemote();
