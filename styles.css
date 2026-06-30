@@ -646,13 +646,22 @@ h1 {
 .month-week-number {
   min-height: 128px;
   display: grid;
-  place-items: start center;
+  align-content: start;
+  justify-items: center;
+  gap: 4px;
   padding-top: 11px;
   border-right: 1px solid rgba(248, 255, 19, 0.28);
   border-bottom: 1px solid rgba(0, 217, 255, 0.16);
   font-size: 0.72rem;
   text-transform: uppercase;
   text-shadow: 0 0 10px rgba(248, 255, 19, 0.44);
+}
+
+.month-week-month {
+  color: var(--text);
+  font-size: 0.64rem;
+  text-transform: none;
+  text-shadow: none;
 }
 
 .month-day {

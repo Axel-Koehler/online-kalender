@@ -210,7 +210,12 @@
         const weekNumber = document.createElement("div");
         weekNumber.className = "month-week-number";
         weekNumber.setAttribute("aria-label", `Kalenderwoche ${getCalendarWeek(date)}`);
-        weekNumber.textContent = `KW ${getCalendarWeek(date)}`;
+        const weekLabel = document.createElement("span");
+        weekLabel.textContent = `KW ${getCalendarWeek(date)}`;
+        const monthLabel = document.createElement("span");
+        monthLabel.className = "month-week-month";
+        monthLabel.textContent = MONTHS[monthStart.getMonth()];
+        weekNumber.append(weekLabel, monthLabel);
         grid.append(weekNumber);
       }
 
