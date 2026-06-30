@@ -42,8 +42,17 @@
 
     .cooling-fields {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 10px;
+    }
+
+    .cooling-preset-field {
+      grid-column: span 2;
+    }
+
+    .cooling-preset-field select[multiple] {
+      min-height: 132px;
+      padding-block: 8px;
     }
 
     .cooling-rooms {
@@ -77,7 +86,7 @@
     .cooling-room-fields,
     .cooling-window-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
     }
 
@@ -254,6 +263,10 @@
       .cooling-row-actions {
         grid-template-columns: 1fr;
       }
+
+      .cooling-preset-field {
+        grid-column: 1 / -1;
+      }
     }
   `;
   document.head.append(style);
@@ -289,7 +302,6 @@
   }
 
   const DEVICE_PRESETS = [
-    ["", "Gerät auswählen"],
     [0, "Keine Geräte - 0 W"],
     [65, "Laptop - 65 W"],
     [150, "Fernseher - 150 W"],
@@ -619,7 +631,7 @@
 
             ${section("Innere Lasten", `
               ${field("cooling-people", "Personen", "number", "", "1")}
-              ${select("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
+              ${multiSelect("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
               ${field("cooling-devices", "Geräte W", "number", "", "1")}
               ${select("cooling-lighting-preset", "Typische Beleuchtung", LIGHTING_PRESETS)}
               ${field("cooling-lighting", "Beleuchtung W", "number", "", "1")}
@@ -698,6 +710,15 @@
     return `<label class="field"><span>${label}</span><select id="${id}">${items}</select></label>`;
   }
 
+  function multiSelect(id, label, options) {
+    const items = options.map((option) => {
+      const value = Array.isArray(option) ? option[0] : option;
+      const text = Array.isArray(option) ? option[1] : option;
+      return `<option value="${value}">${text}</option>`;
+    }).join("");
+    return `<label class="field cooling-preset-field"><span>${label}</span><select id="${id}" multiple size="7">${items}</select></label>`;
+  }
+
   function setValue(id, value) {
     const element = document.querySelector(`#${id}`);
     if (element) element.value = value ?? "";
@@ -712,8 +733,11 @@
   }
 
   function applyDevicePreset(selectElement, inputElement) {
-    if (!selectElement || !inputElement || selectElement.value === "") return;
-    inputElement.value = String(Math.round(number(selectElement.value)));
+    if (!selectElement || !inputElement) return;
+    const selected = [...selectElement.selectedOptions].map((option) => number(option.value));
+    if (!selected.length) return;
+    const watts = selected.reduce((sum, value) => sum + value, 0);
+    inputElement.value = String(Math.round(watts));
     updateResult();
   }
 
@@ -794,7 +818,7 @@
         <label class="field"><span>Dachfläche m²</span><input class="cooling-room-roof" type="number" step="0.01" value="${room.roofArea || ""}"></label>
         <label class="field"><span>Dämmung</span><select class="cooling-room-insulation">${optionList([["schlecht", "Schlecht"], ["mittel", "Mittel"], ["gut", "Gut"], ["sehr gut", "Sehr gut"]], room.insulation)}</select></label>
         <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
-        <label class="field"><span>Typische Geräte</span><select class="cooling-room-device-preset">${optionList(DEVICE_PRESETS, "")}</select></label>
+        <label class="field cooling-preset-field"><span>Typische Geräte</span><select class="cooling-room-device-preset" multiple size="7">${optionList(DEVICE_PRESETS, "")}</select></label>
         <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
         <label class="field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
         <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
