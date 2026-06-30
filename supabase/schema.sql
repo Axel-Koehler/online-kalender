@@ -80,6 +80,7 @@ create table if not exists public.maintenance_records (
   system text not null default '',
   customer_type text not null default '',
   has_maintenance_contract boolean not null default false,
+  appointment_scheduled boolean not null default false,
   phone text,
   last_maintenance date not null,
   next_maintenance date not null,
@@ -95,6 +96,9 @@ add column if not exists customer_type text not null default '';
 
 alter table public.maintenance_records
 add column if not exists has_maintenance_contract boolean not null default false;
+
+alter table public.maintenance_records
+add column if not exists appointment_scheduled boolean not null default false;
 
 alter table public.maintenance_records
 alter column phone drop not null;

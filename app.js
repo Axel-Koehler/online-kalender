@@ -10,7 +10,8 @@ const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
 const SUPABASE_COLUMNS = "id,title,event_date,end_date,start_time,end_time,note,color";
 const SUPABASE_COLUMNS_LEGACY = "id,title,event_date,start_time,end_time,note,color";
-const MAINTENANCE_COLUMNS = "id,customer,address,system,customer_type,has_maintenance_contract,phone,last_maintenance,next_maintenance";
+const MAINTENANCE_COLUMNS = "id,customer,address,system,customer_type,has_maintenance_contract,appointment_scheduled,phone,last_maintenance,next_maintenance";
+const MAINTENANCE_COLUMNS_LEGACY = "id,customer,address,system,customer_type,has_maintenance_contract,phone,last_maintenance,next_maintenance";
 const END_DATE_NOTE_PATTERN = /^\[\[online-kalender:end_date=(\d{4}-\d{2}-\d{2})\]\]\n?/;
 const COLORS = ["#2a9187", "#e2a83b", "#d76666", "#6c8f3c", "#4f77b7", "#bd6f2e"];
 const WEEKDAYS_SHORT = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -58,6 +59,7 @@ const state = {
 let supabaseClient = null;
 let realtimeChannel = null;
 let remoteSupportsEndDate = null;
+let remoteSupportsMaintenanceAppointment = null;
 const holidaysByYear = new Map();
 
 const elements = {
@@ -105,6 +107,7 @@ const elements = {
   maintenancePrivate: document.querySelector("#maintenance-private"),
   maintenanceCommercial: document.querySelector("#maintenance-commercial"),
   maintenanceContract: document.querySelector("#maintenance-contract"),
+  maintenanceAppointment: document.querySelector("#maintenance-appointment"),
   maintenancePhone: document.querySelector("#maintenance-phone"),
   maintenanceLastDate: document.querySelector("#maintenance-last-date"),
   maintenanceNextDate: document.querySelector("#maintenance-next-date"),
@@ -177,6 +180,11 @@ function isMissingEndDateColumn(error) {
   return message.includes("end_date") || message.includes("PGRST204") || message.includes("42703");
 }
 
+function isMissingMaintenanceAppointmentColumn(error) {
+  const message = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`;
+  return message.includes("appointment_scheduled") || message.includes("PGRST204") || message.includes("42703");
+}
+
 function unpackStoredNote(note) {
   const cleanNote = String(note || "");
   const match = cleanNote.match(END_DATE_NOTE_PATTERN);
@@ -241,14 +249,15 @@ function fromMaintenanceRow(row) {
     system: row.system,
     customerType: row.customer_type,
     hasMaintenanceContract: row.has_maintenance_contract,
+    appointmentScheduled: row.appointment_scheduled,
     phone: row.phone,
     lastMaintenance: row.last_maintenance,
     nextMaintenance: row.next_maintenance
   });
 }
 
-function toMaintenanceRow(record) {
-  return {
+function toMaintenanceRow(record, includeAppointmentColumn = true) {
+  const row = {
     id: record.id,
     customer: record.customer,
     address: record.address,
@@ -259,6 +268,12 @@ function toMaintenanceRow(record) {
     last_maintenance: record.lastMaintenance,
     next_maintenance: record.nextMaintenance
   };
+
+  if (includeAppointmentColumn) {
+    row.appointment_scheduled = record.appointmentScheduled;
+  }
+
+  return row;
 }
 
 function isAuthenticated() {
@@ -416,11 +431,23 @@ async function loadRemoteEvents() {
 async function loadRemoteMaintenanceRecords() {
   if (!useRemoteStorage()) return;
 
-  const { data, error } = await supabaseClient
+  let includeAppointmentColumn = remoteSupportsMaintenanceAppointment !== false;
+  let { data, error } = await supabaseClient
     .from("maintenance_records")
-    .select(MAINTENANCE_COLUMNS)
+    .select(includeAppointmentColumn ? MAINTENANCE_COLUMNS : MAINTENANCE_COLUMNS_LEGACY)
     .order("next_maintenance", { ascending: true })
     .order("customer", { ascending: true });
+
+  if (error && includeAppointmentColumn && isMissingMaintenanceAppointmentColumn(error)) {
+    remoteSupportsMaintenanceAppointment = false;
+    ({ data, error } = await supabaseClient
+      .from("maintenance_records")
+      .select(MAINTENANCE_COLUMNS_LEGACY)
+      .order("next_maintenance", { ascending: true })
+      .order("customer", { ascending: true }));
+  } else if (!error) {
+    remoteSupportsMaintenanceAppointment = includeAppointmentColumn;
+  }
 
   if (error) {
     updateSyncStatus("Supabase Fehler");
@@ -469,11 +496,23 @@ async function saveRemoteEvent(event) {
 async function saveRemoteMaintenanceRecord(record) {
   if (!useRemoteStorage()) return null;
 
-  const { data, error } = await supabaseClient
+  let includeAppointmentColumn = remoteSupportsMaintenanceAppointment !== false;
+  let { data, error } = await supabaseClient
     .from("maintenance_records")
-    .upsert(toMaintenanceRow(record))
-    .select(MAINTENANCE_COLUMNS)
+    .upsert(toMaintenanceRow(record, includeAppointmentColumn))
+    .select(includeAppointmentColumn ? MAINTENANCE_COLUMNS : MAINTENANCE_COLUMNS_LEGACY)
     .single();
+
+  if (error && includeAppointmentColumn && isMissingMaintenanceAppointmentColumn(error)) {
+    remoteSupportsMaintenanceAppointment = false;
+    ({ data, error } = await supabaseClient
+      .from("maintenance_records")
+      .upsert(toMaintenanceRow(record, false))
+      .select(MAINTENANCE_COLUMNS_LEGACY)
+      .single());
+  } else if (!error) {
+    remoteSupportsMaintenanceAppointment = includeAppointmentColumn;
+  }
 
   if (error) {
     updateSyncStatus("Speichern fehlgeschlagen");
@@ -1162,6 +1201,12 @@ function renderMaintenance() {
     cell.textContent = label;
     header.append(cell);
   });
+  header.replaceChildren();
+  ["Kunde", "Anschrift", "Anlage", "Art", "Vertrag", "Termin", "Telefon", "Letzte Wartung", "Nächste Wartung", ""].forEach((label) => {
+    const cell = document.createElement("span");
+    cell.textContent = label;
+    header.append(cell);
+  });
   list.append(header);
 
   records.forEach((record) => {
@@ -1173,6 +1218,7 @@ function renderMaintenance() {
       maintenanceCell(record.system, "Anlage"),
       maintenanceCell(record.customerType, "Art"),
       maintenanceCell(record.hasMaintenanceContract ? "Wartungsvertrag" : "", "Vertrag"),
+      maintenanceCell(record.appointmentScheduled ? "Termin vereinbart" : "", "Termin"),
       maintenanceCell(record.phone, "Telefon"),
       maintenanceCell(formatDateFromKey(record.lastMaintenance), "Letzte Wartung"),
       maintenanceCell(formatDateFromKey(record.nextMaintenance), "Nächste Wartung")
@@ -1246,6 +1292,7 @@ function normalizeMaintenanceRecord(record) {
     system: String(record?.system || "").trim(),
     customerType: normalizeMaintenanceType(record?.customerType || record?.customer_type),
     hasMaintenanceContract: Boolean(record?.hasMaintenanceContract ?? record?.has_maintenance_contract),
+    appointmentScheduled: Boolean(record?.appointmentScheduled ?? record?.appointment_scheduled),
     phone: String(record?.phone || "").trim(),
     lastMaintenance: String(record?.lastMaintenance || ""),
     nextMaintenance: String(record?.nextMaintenance || "")
@@ -1274,6 +1321,7 @@ function resetMaintenanceForm() {
   elements.maintenancePrivate.checked = false;
   elements.maintenanceCommercial.checked = false;
   elements.maintenanceContract.checked = false;
+  elements.maintenanceAppointment.checked = false;
   elements.maintenancePhone.value = "";
   elements.maintenanceLastDate.value = "";
   elements.maintenanceNextDate.value = "";
@@ -1299,6 +1347,7 @@ function editMaintenanceRecord(id) {
   elements.maintenancePrivate.checked = record.customerType === "Privat";
   elements.maintenanceCommercial.checked = record.customerType === "Gewerblich";
   elements.maintenanceContract.checked = Boolean(record.hasMaintenanceContract);
+  elements.maintenanceAppointment.checked = Boolean(record.appointmentScheduled);
   elements.maintenancePhone.value = record.phone;
   elements.maintenanceLastDate.value = record.lastMaintenance;
   elements.maintenanceNextDate.value = record.nextMaintenance;
@@ -1316,6 +1365,7 @@ async function upsertMaintenanceRecord(event) {
     system: elements.maintenanceSystem.value,
     customerType: selectedMaintenanceType(),
     hasMaintenanceContract: elements.maintenanceContract.checked,
+    appointmentScheduled: elements.maintenanceAppointment.checked,
     phone: elements.maintenancePhone.value,
     lastMaintenance: elements.maintenanceLastDate.value,
     nextMaintenance: elements.maintenanceNextDate.value

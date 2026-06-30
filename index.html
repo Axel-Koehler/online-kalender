@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#070812">
     <title>MB KK Kalender</title>
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css?v=20260630-2">
+    <link rel="stylesheet" href="styles.css?v=20260630-3">
     <style>
       .view-tabs {
         display: flex !important;
@@ -172,6 +172,13 @@
                     <span>Wartungsvertrag</span>
                   </label>
                 </fieldset>
+                <fieldset class="field maintenance-appointment-field">
+                  <span>Termin</span>
+                  <label class="maintenance-single-check">
+                    <input id="maintenance-appointment" type="checkbox">
+                    <span>Termin vereinbart</span>
+                  </label>
+                </fieldset>
                 <label class="field">
                   <span>Telefonnummer</span>
                   <input id="maintenance-phone" type="tel" autocomplete="tel">
@@ -256,7 +263,7 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260625-7"></script>
-    <script src="app.js?v=20260630-2"></script>
+    <script src="app.js?v=20260630-3"></script>
     <script src="calendar-layout-overrides.js?v=20260630-2"></script>
     <script src="tasks-axel.js?v=20260628-3"></script>
     <script src="inquiries.js?v=20260628-4"></script>
