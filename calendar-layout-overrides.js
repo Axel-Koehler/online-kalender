@@ -207,14 +207,15 @@
     for (let index = 0; index < 42; index += 1) {
       const date = addDays(gridStart, index);
       if (index % 7 === 0) {
+        const rowMonths = [...new Set(Array.from({ length: 7 }, (_, offset) => MONTHS[addDays(date, offset).getMonth()]))].join(" / ");
         const weekNumber = document.createElement("div");
         weekNumber.className = "month-week-number";
-        weekNumber.setAttribute("aria-label", `Kalenderwoche ${getCalendarWeek(date)}`);
+        weekNumber.setAttribute("aria-label", `Kalenderwoche ${getCalendarWeek(date)}, ${rowMonths}`);
         const weekLabel = document.createElement("span");
         weekLabel.textContent = `KW ${getCalendarWeek(date)}`;
         const monthLabel = document.createElement("span");
         monthLabel.className = "month-week-month";
-        monthLabel.textContent = MONTHS[monthStart.getMonth()];
+        monthLabel.textContent = rowMonths;
         weekNumber.append(weekLabel, monthLabel);
         grid.append(weekNumber);
       }

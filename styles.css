@@ -660,8 +660,12 @@ h1 {
 .month-week-month {
   color: var(--text);
   font-size: 0.64rem;
+  line-height: 1.2;
+  max-width: 100%;
+  text-align: center;
   text-transform: none;
   text-shadow: none;
+  overflow-wrap: anywhere;
 }
 
 .month-day {
