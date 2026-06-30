@@ -841,6 +841,7 @@ function setPage(nextPage) {
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
+  document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
   clearActiveTabs();
   if (nextPage === "calendar") {
     document.querySelector(`.tab-button[data-view="${state.view}"]`)?.classList.add("is-active");
@@ -866,6 +867,7 @@ function setView(nextView) {
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
+  document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
   document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
   document.querySelector("#orders-tab")?.classList.remove("is-active");
   document.querySelector("#work-reports-tab")?.classList.remove("is-active");
