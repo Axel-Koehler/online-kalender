@@ -288,6 +288,26 @@
     return `${round(value, 2).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kW`;
   }
 
+  const DEVICE_PRESETS = [
+    ["", "Gerät auswählen"],
+    [0, "Keine Geräte - 0 W"],
+    [65, "Laptop - 65 W"],
+    [150, "Fernseher - 150 W"],
+    [250, "PC Arbeitsplatz - 250 W"],
+    [350, "PC + Monitor - 350 W"],
+    [500, "Küchengeräte klein - 500 W"],
+    [800, "Viele Geräte - 800 W"]
+  ];
+
+  const LIGHTING_PRESETS = [
+    ["", "Beleuchtung auswählen"],
+    [0, "Keine Beleuchtung - 0 W"],
+    [8, "LED sparsam - 8 W/m²"],
+    [10, "LED normal - 10 W/m²"],
+    [15, "Leuchtstoff/LED hell - 15 W/m²"],
+    [25, "Halogen/alt - 25 W/m²"]
+  ];
+
   function recommendedSize(totalWatts) {
     const kw = totalWatts / 1000;
     const sizes = [2.0, 2.5, 3.5, 5.0, 6.0, 7.0, 8.0, 10.0, 12.5, 14.0];
@@ -599,7 +619,9 @@
 
             ${section("Innere Lasten", `
               ${field("cooling-people", "Personen", "number", "", "1")}
+              ${select("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
               ${field("cooling-devices", "Geräte W", "number", "", "1")}
+              ${select("cooling-lighting-preset", "Typische Beleuchtung", LIGHTING_PRESETS)}
               ${field("cooling-lighting", "Beleuchtung W", "number", "", "1")}
               ${field("cooling-air-changes", "Luftwechsel 1/h", "number", "0.5", "0.1")}
               ${field("cooling-safety", "Zuschlag %", "number", "10", "1")}
@@ -645,6 +667,10 @@
       document.querySelector("#cooling-add-room")?.addEventListener("click", () => addRoomCard());
       document.querySelector("#cooling-main-windows")?.addEventListener("click", handleDynamicClick);
       document.querySelector("#cooling-extra-rooms")?.addEventListener("click", handleDynamicClick);
+      document.querySelector("#cooling-device-preset")?.addEventListener("change", applyMainDevicePreset);
+      document.querySelector("#cooling-lighting-preset")?.addEventListener("change", applyMainLightingPreset);
+      document.querySelector("#cooling-length")?.addEventListener("input", applyMainLightingPreset);
+      document.querySelector("#cooling-width")?.addEventListener("input", applyMainLightingPreset);
       document.querySelectorAll("#cooling-form input, #cooling-form select, #cooling-form textarea").forEach((input) => {
         input.addEventListener("input", updateResult);
         input.addEventListener("change", updateResult);
@@ -679,6 +705,41 @@
 
   function value(id) {
     return document.querySelector(`#${id}`)?.value || "";
+  }
+
+  function areaFromFields(lengthValue, widthValue) {
+    return number(lengthValue) * number(widthValue);
+  }
+
+  function applyDevicePreset(selectElement, inputElement) {
+    if (!selectElement || !inputElement || selectElement.value === "") return;
+    inputElement.value = String(Math.round(number(selectElement.value)));
+    updateResult();
+  }
+
+  function applyLightingPreset(selectElement, inputElement, area) {
+    if (!selectElement || !inputElement || selectElement.value === "") return;
+    const wattsPerSquareMeter = number(selectElement.value);
+    inputElement.value = String(Math.round(wattsPerSquareMeter * Math.max(0, area)));
+    updateResult();
+  }
+
+  function applyMainDevicePreset() {
+    applyDevicePreset(document.querySelector("#cooling-device-preset"), document.querySelector("#cooling-devices"));
+  }
+
+  function applyMainLightingPreset() {
+    const area = areaFromFields(value("cooling-length"), value("cooling-width"));
+    applyLightingPreset(document.querySelector("#cooling-lighting-preset"), document.querySelector("#cooling-lighting"), area);
+  }
+
+  function applyRoomDevicePreset(card) {
+    applyDevicePreset(card?.querySelector(".cooling-room-device-preset"), card?.querySelector(".cooling-room-devices"));
+  }
+
+  function applyRoomLightingPreset(card) {
+    const area = areaFromFields(card?.querySelector(".cooling-room-length")?.value, card?.querySelector(".cooling-room-width")?.value);
+    applyLightingPreset(card?.querySelector(".cooling-room-lighting-preset"), card?.querySelector(".cooling-room-lighting"), area);
   }
 
   function optionList(options, selected) {
@@ -733,7 +794,9 @@
         <label class="field"><span>Dachfläche m²</span><input class="cooling-room-roof" type="number" step="0.01" value="${room.roofArea || ""}"></label>
         <label class="field"><span>Dämmung</span><select class="cooling-room-insulation">${optionList([["schlecht", "Schlecht"], ["mittel", "Mittel"], ["gut", "Gut"], ["sehr gut", "Sehr gut"]], room.insulation)}</select></label>
         <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
+        <label class="field"><span>Typische Geräte</span><select class="cooling-room-device-preset">${optionList(DEVICE_PRESETS, "")}</select></label>
         <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
+        <label class="field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
         <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
         <label class="field"><span>Luftwechsel 1/h</span><input class="cooling-room-air" type="number" step="0.1" value="${room.airChanges || 0.5}"></label>
       </div>
@@ -749,6 +812,10 @@
       input.addEventListener("input", updateResult);
       input.addEventListener("change", updateResult);
     });
+    card.querySelector(".cooling-room-device-preset")?.addEventListener("change", () => applyRoomDevicePreset(card));
+    card.querySelector(".cooling-room-lighting-preset")?.addEventListener("change", () => applyRoomLightingPreset(card));
+    card.querySelector(".cooling-room-length")?.addEventListener("input", () => applyRoomLightingPreset(card));
+    card.querySelector(".cooling-room-width")?.addEventListener("input", () => applyRoomLightingPreset(card));
     return card;
   }
 
@@ -871,7 +938,9 @@
     setValue("cooling-insulation", next.insulation);
     setValue("cooling-people", next.people || "");
     setValue("cooling-devices", next.devicesWatts || "");
+    setValue("cooling-device-preset", "");
     setValue("cooling-lighting", next.lightingWatts || "");
+    setValue("cooling-lighting-preset", "");
     setValue("cooling-air-changes", next.airChanges || "");
     setValue("cooling-safety", next.safetyPercent || "");
     setValue("cooling-notes", next.notes);
@@ -1067,6 +1136,8 @@
     setValue("cooling-outside-temp", "35");
     setValue("cooling-air-changes", "0.5");
     setValue("cooling-safety", "10");
+    setValue("cooling-device-preset", "");
+    setValue("cooling-lighting-preset", "");
     setValue("cooling-room-type", "Wohnzimmer");
     setValue("cooling-orientation", "Süd");
     setValue("cooling-shading", "teilweise");
