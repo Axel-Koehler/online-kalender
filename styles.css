@@ -966,13 +966,18 @@ h1 {
 }
 
 .maintenance-head span {
-  justify-self: stretch;
   text-align: left;
 }
 
 .maintenance-row span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.maintenance-row > span:not(.maintenance-actions) {
+  justify-self: stretch;
+  text-align: left;
+  width: 100%;
 }
 
 .maintenance-actions {
