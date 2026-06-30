@@ -46,6 +46,53 @@
       gap: 10px;
     }
 
+    .cooling-rooms {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 12px;
+    }
+
+    .cooling-room-card {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid rgba(0, 217, 255, 0.28);
+      background: rgba(9, 12, 34, 0.5);
+    }
+
+    .cooling-room-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .cooling-room-head strong {
+      color: var(--cyan);
+      font-size: 0.82rem;
+      font-weight: 400;
+      text-transform: uppercase;
+    }
+
+    .cooling-room-fields,
+    .cooling-window-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .cooling-windows {
+      display: grid;
+      gap: 8px;
+    }
+
+    .cooling-window-row {
+      align-items: end;
+      padding: 8px;
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      background: rgba(3, 6, 22, 0.46);
+    }
+
     .cooling-result {
       display: grid;
       grid-template-columns: repeat(5, minmax(120px, 1fr));
@@ -232,6 +279,8 @@
   }
 
   function roomTypeFactor(value) {
+    if (value === "Arbeitszimmer" || value === "Büro") return 1.12;
+    if (value === "Kinderzimmer") return 0.95;
     return {
       Wohnzimmer: 1,
       Schlafzimmer: 0.88,
@@ -239,6 +288,32 @@
       Küche: 1.18,
       Dachzimmer: 1.25
     }[value] || 1;
+  }
+
+  function normalizeWindowItem(item) {
+    return {
+      area: number(item?.area),
+      orientation: String(item?.orientation || "Süd"),
+      shading: String(item?.shading || "teilweise")
+    };
+  }
+
+  function normalizeRoomItem(item) {
+    return {
+      name: String(item?.name || "").trim(),
+      type: String(item?.type || "Wohnzimmer"),
+      length: number(item?.length),
+      width: number(item?.width),
+      height: number(item?.height, 2.5),
+      wallArea: number(item?.wallArea),
+      roofArea: number(item?.roofArea),
+      insulation: String(item?.insulation || "mittel"),
+      people: number(item?.people),
+      devicesWatts: number(item?.devicesWatts),
+      lightingWatts: number(item?.lightingWatts),
+      airChanges: number(item?.airChanges, 0.5),
+      windows: Array.isArray(item?.windows) ? item.windows.map(normalizeWindowItem) : []
+    };
   }
 
   function normalize(record) {
@@ -249,6 +324,8 @@
       calculationDate: String(record?.calculationDate || record?.calculation_date || data.calculationDate || today()),
       customer: String(record?.customer || data.customer || "").trim(),
       address: String(data.address || "").trim(),
+      mainWindows: Array.isArray(data.mainWindows) ? data.mainWindows.map(normalizeWindowItem) : [],
+      rooms: Array.isArray(data.rooms) ? data.rooms.map(normalizeRoomItem) : [],
       roomName: String(record?.roomName || record?.room_name || data.roomName || "").trim(),
       roomType: String(data.roomType || "Wohnzimmer"),
       length: number(data.length),
@@ -287,22 +364,36 @@
 
   function calculate(record) {
     const delta = Math.max(0, record.outsideTemp - record.targetTemp);
-    const area = record.length && record.width ? record.length * record.width : record.calculation.area;
-    const volume = area * (record.height || 2.5);
-    const wallArea = record.wallArea || Math.max(0, (record.length + record.width) * 2 * (record.height || 2.5) - record.windowArea);
-    const shadeFactor = record.shading === "ja" ? 0.55 : record.shading === "nein" ? 1 : 0.78;
-    const baseFactor = insulationFactor(record.insulation) * roomTypeFactor(record.roomType);
-    const transmissionWatts = wallArea * 0.8 * delta * baseFactor;
-    const windowWatts = record.windowArea * 185 * orientationFactor(record.orientation) * shadeFactor;
-    const roofWatts = record.roofArea * 0.9 * delta * baseFactor;
-    const ventilationWatts = volume * record.airChanges * delta * 0.34;
-    const internalWatts = record.people * 120 + record.devicesWatts + record.lightingWatts;
-    const subtotalWatts = transmissionWatts + windowWatts + roofWatts + ventilationWatts + internalWatts;
+    const baseRoom = normalizeRoomItem({
+      name: record.roomName,
+      type: record.roomType,
+      length: record.length,
+      width: record.width,
+      height: record.height,
+      wallArea: record.wallArea,
+      roofArea: record.roofArea,
+      insulation: record.insulation,
+      people: record.people,
+      devicesWatts: record.devicesWatts,
+      lightingWatts: record.lightingWatts,
+      airChanges: record.airChanges,
+      windows: [{ area: record.windowArea, orientation: record.orientation, shading: record.shading }, ...(record.mainWindows || [])]
+    });
+    const roomResults = [baseRoom, ...(record.rooms || [])].map((room) => calculateRoom(room, delta));
+    const area = roomResults.reduce((sum, room) => sum + room.area, 0);
+    const volume = roomResults.reduce((sum, room) => sum + room.volume, 0);
+    const transmissionWatts = roomResults.reduce((sum, room) => sum + room.transmissionWatts, 0);
+    const windowWatts = roomResults.reduce((sum, room) => sum + room.windowWatts, 0);
+    const roofWatts = roomResults.reduce((sum, room) => sum + room.roofWatts, 0);
+    const ventilationWatts = roomResults.reduce((sum, room) => sum + room.ventilationWatts, 0);
+    const internalWatts = roomResults.reduce((sum, room) => sum + room.internalWatts, 0);
+    const subtotalWatts = roomResults.reduce((sum, room) => sum + room.subtotalWatts, 0);
     const totalWatts = subtotalWatts * (1 + Math.max(0, record.safetyPercent) / 100);
     const recommendedKw = recommendedSize(totalWatts);
     return {
       area: round(area, 2),
       volume: round(volume, 2),
+      rooms: roomResults,
       transmissionWatts: round(transmissionWatts),
       windowWatts: round(windowWatts),
       roofWatts: round(roofWatts),
@@ -311,6 +402,35 @@
       subtotalWatts: round(subtotalWatts),
       totalWatts: round(totalWatts),
       recommendedKw
+    };
+  }
+
+  function calculateRoom(room, delta) {
+    const windowArea = room.windows.reduce((sum, item) => sum + item.area, 0);
+    const area = room.length && room.width ? room.length * room.width : 0;
+    const volume = area * (room.height || 2.5);
+    const wallArea = room.wallArea || Math.max(0, (room.length + room.width) * 2 * (room.height || 2.5) - windowArea);
+    const baseFactor = insulationFactor(room.insulation) * roomTypeFactor(room.type);
+    const transmissionWatts = wallArea * 0.8 * delta * baseFactor;
+    const windowWatts = room.windows.reduce((sum, item) => {
+      const shadeFactor = item.shading === "ja" ? 0.55 : item.shading === "nein" ? 1 : 0.78;
+      return sum + item.area * 185 * orientationFactor(item.orientation) * shadeFactor;
+    }, 0);
+    const roofWatts = room.roofArea * 0.9 * delta * baseFactor;
+    const ventilationWatts = volume * room.airChanges * delta * 0.34;
+    const internalWatts = room.people * 120 + room.devicesWatts + room.lightingWatts;
+    const subtotalWatts = transmissionWatts + windowWatts + roofWatts + ventilationWatts + internalWatts;
+    return {
+      name: room.name,
+      type: room.type,
+      area: round(area, 2),
+      volume: round(volume, 2),
+      transmissionWatts: round(transmissionWatts),
+      windowWatts: round(windowWatts),
+      roofWatts: round(roofWatts),
+      ventilationWatts: round(ventilationWatts),
+      internalWatts: round(internalWatts),
+      subtotalWatts: round(subtotalWatts)
     };
   }
 
@@ -345,6 +465,8 @@
       calculationDate: record.calculationDate,
       customer: record.customer,
       address: record.address,
+      mainWindows: record.mainWindows,
+      rooms: record.rooms,
       roomName: record.roomName,
       roomType: record.roomType,
       length: record.length,
@@ -415,7 +537,7 @@
               ${field("cooling-customer", "Kunde")}
               ${field("cooling-address", "Anschrift")}
               ${field("cooling-room-name", "Raum")}
-              ${select("cooling-room-type", "Raumtyp", ["Wohnzimmer", "Schlafzimmer", "Büro", "Küche", "Dachzimmer"])}
+              ${select("cooling-room-type", "Raumtyp", ["Wohnzimmer", "Schlafzimmer", "Büro", "Arbeitszimmer", "Kinderzimmer", "Küche", "Dachzimmer"])}
               ${field("cooling-target-temp", "Raumtemperatur °C", "number", "22", "0.5")}
               ${field("cooling-outside-temp", "Außentemperatur °C", "number", "35", "0.5")}
             `)}
@@ -444,6 +566,23 @@
               </label>
             `)}
 
+            <section class="cooling-section">
+              <span class="cooling-section-title">Weitere Fenster und Zimmer</span>
+              <div class="cooling-fields">
+                <div class="cooling-rooms">
+                  <div class="cooling-room-card">
+                    <div class="cooling-room-head">
+                      <strong>Weitere Fenster Raum 1</strong>
+                      <button class="text-button" id="cooling-add-main-window" type="button">Fenster ergänzen</button>
+                    </div>
+                    <div class="cooling-windows" id="cooling-main-windows"></div>
+                  </div>
+                  <div class="cooling-rooms" id="cooling-extra-rooms"></div>
+                  <button class="text-button" id="cooling-add-room" type="button">Zimmer ergänzen</button>
+                </div>
+              </div>
+            </section>
+
             <div class="cooling-result" id="cooling-result"></div>
             <p class="form-error" id="cooling-status" role="status"></p>
             <div class="cooling-actions">
@@ -459,6 +598,10 @@
       document.querySelector("#cooling-reset")?.addEventListener("click", resetForm);
       document.querySelector("#cooling-pdf")?.addEventListener("click", () => printRecord(readForm()));
       document.querySelector("#cooling-mail")?.addEventListener("click", () => emailRecord(readForm()));
+      document.querySelector("#cooling-add-main-window")?.addEventListener("click", () => addMainWindow());
+      document.querySelector("#cooling-add-room")?.addEventListener("click", () => addRoomCard());
+      document.querySelector("#cooling-main-windows")?.addEventListener("click", handleDynamicClick);
+      document.querySelector("#cooling-extra-rooms")?.addEventListener("click", handleDynamicClick);
       document.querySelectorAll("#cooling-form input, #cooling-form select, #cooling-form textarea").forEach((input) => {
         input.addEventListener("input", updateResult);
         input.addEventListener("change", updateResult);
@@ -495,12 +638,155 @@
     return document.querySelector(`#${id}`)?.value || "";
   }
 
+  function optionList(options, selected) {
+    return options.map((option) => {
+      const value = Array.isArray(option) ? option[0] : option;
+      const text = Array.isArray(option) ? option[1] : option;
+      return `<option value="${value}"${value === selected ? " selected" : ""}>${text}</option>`;
+    }).join("");
+  }
+
+  function windowRow(item = {}) {
+    const win = normalizeWindowItem(item);
+    const row = document.createElement("div");
+    row.className = "cooling-window-row";
+    row.innerHTML = `
+      <label class="field">
+        <span>Fenster m²</span>
+        <input class="cooling-window-area" type="number" step="0.01" value="${win.area || ""}">
+      </label>
+      <label class="field">
+        <span>Richtung</span>
+        <select class="cooling-window-orientation">${optionList(["Nord", "Ost", "Süd", "West"], win.orientation)}</select>
+      </label>
+      <label class="field">
+        <span>Sonnenschutz</span>
+        <select class="cooling-window-shading">${optionList([["ja", "Ja"], ["teilweise", "Teilweise"], ["nein", "Nein"]], win.shading)}</select>
+      </label>
+      <button class="text-button cooling-remove-window" type="button">Entfernen</button>
+    `;
+    row.querySelectorAll("input, select").forEach((input) => {
+      input.addEventListener("input", updateResult);
+      input.addEventListener("change", updateResult);
+    });
+    return row;
+  }
+
+  function roomCard(item = {}) {
+    const room = normalizeRoomItem(item);
+    const card = document.createElement("div");
+    card.className = "cooling-room-card";
+    card.innerHTML = `
+      <div class="cooling-room-head">
+        <strong>Zimmer</strong>
+        <button class="text-button cooling-remove-room" type="button">Zimmer entfernen</button>
+      </div>
+      <div class="cooling-room-fields">
+        <label class="field"><span>Raum</span><input class="cooling-room-name" type="text" value="${escapeHtml(room.name)}"></label>
+        <label class="field"><span>Raumtyp</span><select class="cooling-room-type">${optionList(["Wohnzimmer", "Schlafzimmer", "Büro", "Arbeitszimmer", "Kinderzimmer", "Küche", "Dachzimmer"], room.type)}</select></label>
+        <label class="field"><span>Länge m</span><input class="cooling-room-length" type="number" step="0.01" value="${room.length || ""}"></label>
+        <label class="field"><span>Breite m</span><input class="cooling-room-width" type="number" step="0.01" value="${room.width || ""}"></label>
+        <label class="field"><span>Höhe m</span><input class="cooling-room-height" type="number" step="0.01" value="${room.height || 2.5}"></label>
+        <label class="field"><span>Außenwand m²</span><input class="cooling-room-wall" type="number" step="0.01" value="${room.wallArea || ""}"></label>
+        <label class="field"><span>Dachfläche m²</span><input class="cooling-room-roof" type="number" step="0.01" value="${room.roofArea || ""}"></label>
+        <label class="field"><span>Dämmung</span><select class="cooling-room-insulation">${optionList([["schlecht", "Schlecht"], ["mittel", "Mittel"], ["gut", "Gut"], ["sehr gut", "Sehr gut"]], room.insulation)}</select></label>
+        <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
+        <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
+        <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
+        <label class="field"><span>Luftwechsel 1/h</span><input class="cooling-room-air" type="number" step="0.1" value="${room.airChanges || 0.5}"></label>
+      </div>
+      <div class="cooling-room-head">
+        <strong>Fenster</strong>
+        <button class="text-button cooling-add-window" type="button">Fenster ergänzen</button>
+      </div>
+      <div class="cooling-windows"></div>
+    `;
+    const windows = card.querySelector(".cooling-windows");
+    (room.windows.length ? room.windows : [normalizeWindowItem()]).forEach((win) => windows.append(windowRow(win)));
+    card.querySelectorAll("input, select").forEach((input) => {
+      input.addEventListener("input", updateResult);
+      input.addEventListener("change", updateResult);
+    });
+    return card;
+  }
+
+  function addMainWindow(item = {}) {
+    document.querySelector("#cooling-main-windows")?.append(windowRow(item));
+    updateResult();
+  }
+
+  function addRoomCard(item = {}) {
+    document.querySelector("#cooling-extra-rooms")?.append(roomCard(item));
+    updateResult();
+  }
+
+  function renderAdditionalMainWindows(windows = []) {
+    const container = document.querySelector("#cooling-main-windows");
+    if (!container) return;
+    container.replaceChildren();
+    windows.forEach((item) => container.append(windowRow(item)));
+  }
+
+  function renderRooms(rooms = []) {
+    const container = document.querySelector("#cooling-extra-rooms");
+    if (!container) return;
+    container.replaceChildren();
+    rooms.forEach((item) => container.append(roomCard(item)));
+  }
+
+  function handleDynamicClick(event) {
+    if (event.target.closest(".cooling-remove-window")) {
+      event.target.closest(".cooling-window-row")?.remove();
+      updateResult();
+    }
+    if (event.target.closest(".cooling-add-window")) {
+      event.target.closest(".cooling-room-card")?.querySelector(".cooling-windows")?.append(windowRow());
+      updateResult();
+    }
+    if (event.target.closest(".cooling-remove-room")) {
+      event.target.closest(".cooling-room-card")?.remove();
+      updateResult();
+    }
+  }
+
+  function readWindowRows(container) {
+    return [...(container?.querySelectorAll(".cooling-window-row") || [])].map((row) => normalizeWindowItem({
+      area: row.querySelector(".cooling-window-area")?.value,
+      orientation: row.querySelector(".cooling-window-orientation")?.value,
+      shading: row.querySelector(".cooling-window-shading")?.value
+    })).filter((item) => item.area > 0);
+  }
+
+  function readAdditionalMainWindows() {
+    return readWindowRows(document.querySelector("#cooling-main-windows"));
+  }
+
+  function readRooms() {
+    return [...document.querySelectorAll("#cooling-extra-rooms > .cooling-room-card")].map((card) => normalizeRoomItem({
+      name: card.querySelector(".cooling-room-name")?.value,
+      type: card.querySelector(".cooling-room-type")?.value,
+      length: card.querySelector(".cooling-room-length")?.value,
+      width: card.querySelector(".cooling-room-width")?.value,
+      height: card.querySelector(".cooling-room-height")?.value,
+      wallArea: card.querySelector(".cooling-room-wall")?.value,
+      roofArea: card.querySelector(".cooling-room-roof")?.value,
+      insulation: card.querySelector(".cooling-room-insulation")?.value,
+      people: card.querySelector(".cooling-room-people")?.value,
+      devicesWatts: card.querySelector(".cooling-room-devices")?.value,
+      lightingWatts: card.querySelector(".cooling-room-lighting")?.value,
+      airChanges: card.querySelector(".cooling-room-air")?.value,
+      windows: readWindowRows(card.querySelector(".cooling-windows"))
+    }));
+  }
+
   function readForm() {
     return withCalculation({
       id: value("cooling-id") || crypto.randomUUID(),
       calculationDate: value("cooling-date") || today(),
       customer: value("cooling-customer"),
       address: value("cooling-address"),
+      mainWindows: readAdditionalMainWindows(),
+      rooms: readRooms(),
       roomName: value("cooling-room-name"),
       roomType: value("cooling-room-type"),
       length: value("cooling-length"),
@@ -548,6 +834,8 @@
     setValue("cooling-air-changes", next.airChanges || "");
     setValue("cooling-safety", next.safetyPercent || "");
     setValue("cooling-notes", next.notes);
+    renderAdditionalMainWindows(next.mainWindows);
+    renderRooms(next.rooms);
     updateResult();
   }
 
@@ -729,6 +1017,8 @@
     setValue("cooling-orientation", "Süd");
     setValue("cooling-shading", "teilweise");
     setValue("cooling-insulation", "mittel");
+    renderAdditionalMainWindows();
+    renderRooms();
     setStatus("");
     updateResult();
   }
