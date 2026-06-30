@@ -836,8 +836,10 @@ function setPage(nextPage) {
 
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
   document.querySelector("#orders-tab")?.classList.remove("is-active");
+  document.querySelector("#work-reports-tab")?.classList.remove("is-active");
 
   elements.tabs.forEach((tab) => {
     tab.classList.toggle("is-active", nextPage === "calendar" && tab.dataset.view === state.view);
@@ -862,8 +864,10 @@ function setView(nextView) {
   elements.maintenanceView.hidden = true;
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
   document.querySelector("#orders-tab")?.classList.remove("is-active");
+  document.querySelector("#work-reports-tab")?.classList.remove("is-active");
   elements.prevButton.hidden = false;
   elements.nextButton.hidden = false;
   elements.todayButton.hidden = false;

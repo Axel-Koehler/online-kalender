@@ -160,7 +160,9 @@
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
+    document.querySelector("#work-reports-tab")?.classList.remove("is-active");
     ensureTasksView().hidden = true;
     ensureTasksTab().classList.remove("is-active");
     hideOrdersView();
@@ -171,7 +173,9 @@
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
+    document.querySelector("#work-reports-tab")?.classList.remove("is-active");
     hideOrdersView();
     ensureTasksView().hidden = false;
     elements.rangeLabel.textContent = "Aufgaben Axel";

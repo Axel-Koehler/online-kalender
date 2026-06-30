@@ -485,9 +485,11 @@
     document.querySelector("#tasks-view")?.setAttribute("hidden", "");
     document.querySelector("#orders-view")?.setAttribute("hidden", "");
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
     document.querySelector("#orders-tab")?.classList.remove("is-active");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
+    document.querySelector("#work-reports-tab")?.classList.remove("is-active");
   }
 
   function showCalendarViews() {
