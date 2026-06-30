@@ -46,6 +46,69 @@
       gap: 10px;
     }
 
+    .cooling-device-picker {
+      position: relative;
+    }
+
+    .cooling-device-picker summary {
+      min-height: var(--input-height, 44px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      background: rgba(3, 6, 22, 0.68);
+      color: var(--text);
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .cooling-device-picker summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .cooling-device-picker summary::after {
+      content: "▾";
+      color: var(--cyan);
+      font-size: 0.8rem;
+    }
+
+    .cooling-device-picker[open] summary::after {
+      content: "▴";
+    }
+
+    .cooling-device-options {
+      position: absolute;
+      z-index: 20;
+      left: 0;
+      right: 0;
+      display: grid;
+      gap: 4px;
+      max-height: 240px;
+      margin-top: 4px;
+      padding: 8px;
+      overflow: auto;
+      border: 1px solid var(--line-strong);
+      background: rgba(3, 6, 22, 0.98);
+      box-shadow: var(--shadow);
+    }
+
+    .cooling-device-options label {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    .cooling-device-options input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--cyan);
+    }
+
     .cooling-preset-field select[multiple] {
       min-height: var(--input-height, 44px);
       height: var(--input-height, 44px);
@@ -631,7 +694,7 @@
 
             ${section("Innere Lasten", `
               ${field("cooling-people", "Personen", "number", "", "1")}
-              ${multiSelect("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
+              ${devicePicker("cooling-device-preset", "Typische Geräte", DEVICE_PRESETS)}
               ${field("cooling-devices", "Geräte W", "number", "", "1")}
               ${select("cooling-lighting-preset", "Typische Beleuchtung", LIGHTING_PRESETS)}
               ${field("cooling-lighting", "Beleuchtung W", "number", "", "1")}
@@ -710,13 +773,22 @@
     return `<label class="field"><span>${label}</span><select id="${id}">${items}</select></label>`;
   }
 
-  function multiSelect(id, label, options) {
+  function devicePicker(id, label, options, className = "") {
     const items = options.map((option) => {
       const value = Array.isArray(option) ? option[0] : option;
       const text = Array.isArray(option) ? option[1] : option;
-      return `<option value="${value}">${text}</option>`;
+      return `<label><input type="checkbox" value="${value}" data-label="${escapeHtml(String(text))}"><span>${text}</span></label>`;
     }).join("");
-    return `<label class="field cooling-preset-field"><span>${label}</span><select id="${id}" multiple size="1">${items}</select></label>`;
+    const idAttr = id ? ` id="${id}"` : "";
+    return `
+      <div class="field cooling-preset-field">
+        <span>${label}</span>
+        <details class="cooling-device-picker ${className}"${idAttr}>
+          <summary>Geräte auswählen</summary>
+          <div class="cooling-device-options">${items}</div>
+        </details>
+      </div>
+    `;
   }
 
   function setValue(id, value) {
@@ -734,10 +806,13 @@
 
   function applyDevicePreset(selectElement, inputElement) {
     if (!selectElement || !inputElement) return;
-    const selected = [...selectElement.selectedOptions].map((option) => number(option.value));
-    if (!selected.length) return;
-    const watts = selected.reduce((sum, value) => sum + value, 0);
+    const checked = [...selectElement.querySelectorAll("input[type='checkbox']:checked")];
+    const watts = checked.reduce((sum, item) => sum + number(item.value), 0);
     inputElement.value = String(Math.round(watts));
+    const summary = selectElement.querySelector("summary");
+    if (summary) {
+      summary.textContent = checked.length ? `${checked.length} Gerät${checked.length === 1 ? "" : "e"} - ${formatWatts(watts)}` : "Geräte auswählen";
+    }
     updateResult();
   }
 
@@ -818,7 +893,7 @@
         <label class="field"><span>Dachfläche m²</span><input class="cooling-room-roof" type="number" step="0.01" value="${room.roofArea || ""}"></label>
         <label class="field"><span>Dämmung</span><select class="cooling-room-insulation">${optionList([["schlecht", "Schlecht"], ["mittel", "Mittel"], ["gut", "Gut"], ["sehr gut", "Sehr gut"]], room.insulation)}</select></label>
         <label class="field"><span>Personen</span><input class="cooling-room-people" type="number" step="1" value="${room.people || ""}"></label>
-        <label class="field cooling-preset-field"><span>Typische Geräte</span><select class="cooling-room-device-preset" multiple size="1">${optionList(DEVICE_PRESETS, "")}</select></label>
+        ${devicePicker("", "Typische Geräte", DEVICE_PRESETS, "cooling-room-device-preset")}
         <label class="field"><span>Geräte W</span><input class="cooling-room-devices" type="number" step="1" value="${room.devicesWatts || ""}"></label>
         <label class="field"><span>Typische Beleuchtung</span><select class="cooling-room-lighting-preset">${optionList(LIGHTING_PRESETS, "")}</select></label>
         <label class="field"><span>Beleuchtung W</span><input class="cooling-room-lighting" type="number" step="1" value="${room.lightingWatts || ""}"></label>
