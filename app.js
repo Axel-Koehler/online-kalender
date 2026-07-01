@@ -842,6 +842,7 @@ function setPage(nextPage) {
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+  document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
   clearActiveTabs();
   if (nextPage === "calendar") {
     document.querySelector(`.tab-button[data-view="${state.view}"]`)?.classList.add("is-active");
@@ -868,9 +869,11 @@ function setView(nextView) {
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+  document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
   document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
   document.querySelector("#orders-tab")?.classList.remove("is-active");
   document.querySelector("#work-reports-tab")?.classList.remove("is-active");
+  document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
   elements.prevButton.hidden = false;
   elements.nextButton.hidden = false;
   elements.todayButton.hidden = false;

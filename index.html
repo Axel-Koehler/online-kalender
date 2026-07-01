@@ -110,6 +110,7 @@
           <button class="tab-button" id="maintenance-page-button" type="button">Wartungen</button>
           <button class="tab-button inquiries-tab" id="inquiries-tab" type="button" data-view="inquiries">Anfragen</button>
           <button class="tab-button cooling-load-tab" id="cooling-load-tab" type="button" data-view="cooling-load">Kühllastberechnung Klimaanlagen</button>
+          <button class="tab-button cold-room-load-tab" id="cold-room-load-tab" type="button" data-view="cold-room-load">Kühlzellenberechnung</button>
         </nav>
 
         <div class="toolbar">
@@ -205,6 +206,7 @@
         </section>
         <section id="inquiries-view" class="calendar-view inquiries-view" aria-label="Anfragen" hidden></section>
         <section id="cooling-load-view" class="calendar-view cooling-load-view" aria-label="Kühllastberechnung Klimaanlagen" hidden></section>
+        <section id="cold-room-load-view" class="calendar-view cold-room-load-view" aria-label="Kühllastberechnung Kühlzellen" hidden></section>
       </main>
 
       <footer class="footer-actions">
@@ -265,11 +267,12 @@
     </dialog>
 
     <script src="supabase-config.js?v=20260625-7"></script>
-    <script src="app.js?v=20260630-6"></script>
+    <script src="app.js?v=20260701-1"></script>
     <script src="calendar-layout-overrides.js?v=20260630-2"></script>
     <script src="tasks-axel.js?v=20260630-1"></script>
     <script src="inquiries.js?v=20260630-2"></script>
     <script src="work-reports.js?v=20260630-1"></script>
-    <script src="cooling-load.js?v=20260701-1"></script>
+    <script src="cooling-load.js?v=20260701-2"></script>
+    <script src="cold-room-load.js?v=20260701-1"></script>
   </body>
 </html>
