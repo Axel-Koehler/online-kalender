@@ -46,8 +46,24 @@
       gap: 10px;
     }
 
+    .cooling-fields > .field,
+    .cooling-room-fields > .field,
+    .cooling-window-row > .field {
+      min-width: 0;
+      width: 100%;
+    }
+
     .cooling-device-picker {
       position: relative;
+      width: 100%;
+    }
+
+    .cooling-shell .field input,
+    .cooling-shell .field select {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .cooling-shell .field select {
@@ -55,7 +71,14 @@
       height: var(--input-height, 44px);
     }
 
+    .cooling-shell .field input[type="date"] {
+      min-inline-size: 0;
+      font-size: 0.86rem;
+    }
+
     .cooling-device-picker summary {
+      width: 100%;
+      box-sizing: border-box;
       min-height: var(--input-height, 44px);
       height: var(--input-height, 44px);
       display: flex;
@@ -122,7 +145,7 @@
     }
 
     .cooling-lighting-preset-field {
-      margin-right: 14px;
+      margin-right: 0;
     }
 
     .cooling-rooms {
