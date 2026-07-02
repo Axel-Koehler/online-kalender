@@ -1525,11 +1525,13 @@
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
     document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
     document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+    document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
     document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
     document.querySelector("#orders-tab")?.classList.remove("is-active");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     document.querySelector("#inquiries-tab")?.classList.remove("is-active");
     document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
+    document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
   }
 
   function showCalendarViews() {

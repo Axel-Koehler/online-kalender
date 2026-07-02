@@ -452,9 +452,9 @@
               ${field("cold-room-length", "Länge m", "number", "", "0.01")}
               ${field("cold-room-width", "Breite m", "number", "", "0.01")}
               ${field("cold-room-height", "Höhe m", "number", "2.40", "0.01")}
-              ${select("cold-room-insulation", "Dämmung", ["80 mm", "100 mm", "120 mm", "150 mm", "200 mm"])}
-              ${field("cold-room-u", "U-Wert Wand/Decke", "number", "0.28", "0.01")}
-              ${field("cold-room-floor-u", "U-Wert Boden", "number", "0.35", "0.01")}
+              ${select("cold-room-insulation", "Dämmung", ["80 mm - U 0,24", "100 mm - U 0,20", "120 mm - U 0,18", "140 mm - U 0,16", "160 mm - U 0,14", "Mauer 100 mm - U 0,35", "Mauer 150 mm - U 0,25"])}
+              ${field("cold-room-u", "U-Wert Wand/Decke", "number", "0.20", "0.01")}
+              ${field("cold-room-floor-u", "U-Wert Boden", "number", "0.20", "0.01")}
             `)}
 
             ${section("Ware / Einlagerung", `
@@ -544,27 +544,29 @@
     if (type === "Tiefkühlung") {
       setValue("cold-room-target", "-18");
       setValue("cold-room-freeze-share", "100");
-      setValue("cold-room-u", "0.20");
-      setValue("cold-room-floor-u", "0.25");
-      setValue("cold-room-insulation", "150 mm");
+      setValue("cold-room-u", "0.14");
+      setValue("cold-room-floor-u", "0.14");
+      setValue("cold-room-insulation", "160 mm - U 0,14");
       setValue("cold-room-defrost", value("cold-room-defrost") || "500");
     } else {
       setValue("cold-room-target", "4");
       setValue("cold-room-freeze-share", "0");
-      setValue("cold-room-u", "0.28");
-      setValue("cold-room-floor-u", "0.35");
-      setValue("cold-room-insulation", "100 mm");
+      setValue("cold-room-u", "0.20");
+      setValue("cold-room-floor-u", "0.20");
+      setValue("cold-room-insulation", "100 mm - U 0,20");
     }
     updateResult();
   }
 
   function applyInsulationDefaults() {
     const defaults = {
-      "80 mm": [0.34, 0.42],
-      "100 mm": [0.28, 0.35],
-      "120 mm": [0.24, 0.30],
-      "150 mm": [0.20, 0.25],
-      "200 mm": [0.15, 0.20]
+      "80 mm - U 0,24": [0.24, 0.24],
+      "100 mm - U 0,20": [0.20, 0.20],
+      "120 mm - U 0,18": [0.18, 0.18],
+      "140 mm - U 0,16": [0.16, 0.16],
+      "160 mm - U 0,14": [0.14, 0.14],
+      "Mauer 100 mm - U 0,35": [0.35, 0.35],
+      "Mauer 150 mm - U 0,25": [0.25, 0.25]
     };
     const next = defaults[value("cold-room-insulation")];
     if (next) {
@@ -815,9 +817,9 @@
     setValue("cold-room-ambient", "30");
     setValue("cold-room-runtime", "18");
     setValue("cold-room-height", "2.40");
-    setValue("cold-room-insulation", "100 mm");
-    setValue("cold-room-u", "0.28");
-    setValue("cold-room-floor-u", "0.35");
+    setValue("cold-room-insulation", "100 mm - U 0,20");
+    setValue("cold-room-u", "0.20");
+    setValue("cold-room-floor-u", "0.20");
     setValue("cold-room-product", "Mischware");
     setValue("cold-room-entry-temp", "12");
     setValue("cold-room-pull-hours", "12");
