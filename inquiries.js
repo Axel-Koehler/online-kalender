@@ -1,7 +1,7 @@
 (() => {
   const TABLE = "inquiry_records";
   const STORAGE_KEY = "online-kalender-inquiries-v1";
-  const COLUMNS = "id,inquiry_date,system_type,customer_type,name,address,phone,email";
+  const COLUMNS = "id,inquiry_date,system_type,customer_type,name,address,phone,email,notes";
   let channel = null;
   let editingId = null;
 
@@ -84,6 +84,17 @@
       white-space: nowrap;
     }
 
+    .inquiries-notes-field {
+      grid-column: 1 / -1;
+    }
+
+    .inquiries-notes-field textarea {
+      height: 92px;
+      max-height: 120px;
+      overflow-y: auto;
+      resize: vertical;
+    }
+
     .inquiries-actions {
       display: flex;
       justify-content: flex-end;
@@ -102,7 +113,7 @@
 
     .inquiry-row {
       display: grid;
-      grid-template-columns: 0.85fr 1fr 0.75fr 1fr 1.2fr 0.9fr 1fr minmax(170px, auto);
+      grid-template-columns: 0.75fr 0.9fr 0.7fr 0.9fr 1.15fr 0.8fr 1fr 1.1fr minmax(170px, auto);
       gap: 10px;
       align-items: center;
       min-height: 46px;
@@ -192,7 +203,8 @@
       name: String(record?.name || "").trim(),
       address: String(record?.address || "").trim(),
       phone: String(record?.phone || "").trim(),
-      email: String(record?.email || "").trim()
+      email: String(record?.email || "").trim(),
+      notes: String(record?.notes || "").trim()
     };
   }
 
@@ -228,7 +240,8 @@
       name: record.name,
       address: record.address,
       phone: record.phone,
-      email: record.email
+      email: record.email,
+      notes: record.notes
     };
   }
 
@@ -281,6 +294,10 @@
               <label class="field">
                 <span>E-Mail Adresse</span>
                 <input id="inquiry-email" type="email" autocomplete="email">
+              </label>
+              <label class="field inquiries-notes-field">
+                <span>Notizen</span>
+                <textarea id="inquiry-notes" rows="3"></textarea>
               </label>
             </div>
             <p class="form-error" id="inquiries-status" role="status"></p>
@@ -344,7 +361,7 @@
     table.className = "inquiries-table";
     const head = document.createElement("div");
     head.className = "inquiry-row inquiry-head";
-    ["Datum", "Anlagen Typ", "Art", "Name", "Anschrift", "Telefon", "E-Mail", ""].forEach((label) => {
+    ["Datum", "Anlagen Typ", "Art", "Name", "Anschrift", "Telefon", "E-Mail", "Notizen", ""].forEach((label) => {
       const item = document.createElement("span");
       item.textContent = label;
       head.append(item);
@@ -361,7 +378,8 @@
         cell(record.name, "Name"),
         cell(record.address, "Anschrift"),
         cell(record.phone, "Telefon"),
-        cell(record.email, "E-Mail")
+        cell(record.email, "E-Mail"),
+        cell(record.notes, "Notizen")
       );
 
       const actions = document.createElement("span");
@@ -415,7 +433,8 @@
       name: document.querySelector("#inquiry-name").value,
       address: document.querySelector("#inquiry-address").value,
       phone: document.querySelector("#inquiry-phone").value,
-      email: document.querySelector("#inquiry-email").value
+      email: document.querySelector("#inquiry-email").value,
+      notes: document.querySelector("#inquiry-notes").value
     });
 
     let saved = record;
@@ -450,6 +469,7 @@
     document.querySelector("#inquiry-address").value = record.address;
     document.querySelector("#inquiry-phone").value = record.phone;
     document.querySelector("#inquiry-email").value = record.email;
+    document.querySelector("#inquiry-notes").value = record.notes;
     setStatus("");
     document.querySelector("#inquiry-date").focus();
   }
@@ -488,11 +508,13 @@
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
     document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+    document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
     document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
     document.querySelector("#orders-tab")?.classList.remove("is-active");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
     document.querySelector("#work-reports-tab")?.classList.remove("is-active");
     document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
+    document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
   }
 
   function showCalendarViews() {

@@ -163,9 +163,13 @@ create table if not exists public.inquiry_records (
   address text not null default '',
   phone text not null default '',
   email text not null default '',
+  notes text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.inquiry_records
+add column if not exists notes text not null default '';
 
 alter table public.inquiry_records enable row level security;
 

@@ -840,6 +840,7 @@ function setPage(nextPage) {
 
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
   document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
@@ -867,12 +868,15 @@ function setView(nextView) {
   elements.maintenanceView.hidden = true;
   document.querySelector("#tasks-view")?.setAttribute("hidden", "");
   document.querySelector("#orders-view")?.setAttribute("hidden", "");
+  document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
   document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
   document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
   document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
   document.querySelector("#tasks-axel-tab")?.classList.remove("is-active");
   document.querySelector("#orders-tab")?.classList.remove("is-active");
+  document.querySelector("#inquiries-tab")?.classList.remove("is-active");
   document.querySelector("#work-reports-tab")?.classList.remove("is-active");
+  document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
   document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
   elements.prevButton.hidden = false;
   elements.nextButton.hidden = false;
