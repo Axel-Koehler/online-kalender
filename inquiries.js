@@ -107,28 +107,54 @@
     }
 
     .inquiries-table {
+      --inquiry-columns: minmax(78px, 0.75fr) minmax(92px, 0.9fr) minmax(70px, 0.7fr) minmax(95px, 0.9fr) minmax(120px, 1.15fr) minmax(92px, 0.8fr) minmax(112px, 1fr) minmax(120px, 1.1fr) minmax(170px, auto);
       display: grid;
-      gap: 8px;
+      grid-template-columns: var(--inquiry-columns);
+      gap: 8px 10px;
     }
 
     .inquiry-row {
       box-sizing: border-box;
-      display: grid;
-      grid-template-columns: 0.75fr 0.9fr 0.7fr 0.9fr 1.15fr 0.8fr 1fr 1.1fr minmax(170px, auto);
-      gap: 10px;
+      display: contents;
+    }
+
+    .inquiry-row > span {
+      display: flex;
       align-items: center;
       min-height: 46px;
       padding: 9px;
-      border: 1px solid rgba(0, 217, 255, 0.24);
+      border-top: 1px solid rgba(0, 217, 255, 0.24);
+      border-bottom: 1px solid rgba(0, 217, 255, 0.24);
       background: rgba(9, 12, 34, 0.58);
+    }
+
+    .inquiry-row > span:first-child {
+      border-left: 1px solid rgba(0, 217, 255, 0.24);
+    }
+
+    .inquiry-row > span:last-child {
+      border-right: 1px solid rgba(0, 217, 255, 0.24);
+    }
+
+    .inquiry-head > span {
+      min-height: 36px;
+      border: 1px solid rgba(0, 217, 255, 0.24);
+      border-left: 0;
+      border-right: 0;
+      background: rgba(7, 11, 31, 0.96);
+    }
+
+    .inquiry-head > span:first-child {
+      border-left: 1px solid rgba(0, 217, 255, 0.24);
+    }
+
+    .inquiry-head > span:last-child {
+      border-right: 1px solid rgba(0, 217, 255, 0.24);
     }
 
     .inquiry-head {
       box-sizing: border-box;
-      min-height: 36px;
-      justify-items: stretch;
       color: var(--cyan);
-      background: rgba(7, 11, 31, 0.96);
       font-size: 0.74rem;
       text-transform: uppercase;
       text-shadow: 0 0 10px rgba(0, 217, 255, 0.58);
@@ -139,7 +165,7 @@
       min-width: 0;
       max-width: 100%;
       margin: 0;
-      padding: 0;
+      padding: 9px;
       text-align: left;
       overflow-wrap: anywhere;
     }
@@ -174,8 +200,27 @@
     }
 
     @media (max-width: 1100px) {
+      .inquiries-table {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
       .inquiry-row {
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 9px;
+        border: 1px solid rgba(0, 217, 255, 0.24);
+        background: rgba(9, 12, 34, 0.58);
+      }
+
+      .inquiry-row > span {
+        display: block;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
       }
 
       .inquiry-head {
@@ -192,6 +237,7 @@
       }
 
       .inquiry-row-actions {
+        display: flex;
         grid-column: 1 / -1;
         justify-content: flex-start;
       }
@@ -199,9 +245,13 @@
 
     @media (max-width: 620px) {
       .inquiries-fields,
-      .inquiry-row,
-      .inquiry-row-actions {
+      .inquiry-row {
         grid-template-columns: 1fr;
+      }
+
+      .inquiry-row-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
       }
     }
   `;
