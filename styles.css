@@ -947,6 +947,7 @@ h1 {
 }
 
 .maintenance-row {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: var(--maintenance-columns);
   gap: 10px;
@@ -958,9 +959,11 @@ h1 {
 }
 
 .maintenance-head {
+  box-sizing: border-box;
   min-height: 36px;
   grid-template-columns: var(--maintenance-columns);
   align-items: center;
+  justify-items: stretch;
   color: var(--cyan);
   background: rgba(7, 11, 31, 0.96);
   font-size: 0.74rem;
@@ -969,9 +972,14 @@ h1 {
 }
 
 .maintenance-head span {
-  justify-self: start;
+  display: block;
+  justify-self: stretch;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
   text-align: left;
   width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .maintenance-row span {
