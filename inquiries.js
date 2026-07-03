@@ -136,6 +136,13 @@
       overflow-wrap: anywhere;
     }
 
+    .inquiry-notes-output {
+      max-height: 72px;
+      overflow-y: auto;
+      padding-right: 4px;
+      white-space: pre-wrap;
+    }
+
     .inquiry-row-actions {
       display: flex;
       justify-content: flex-end;
@@ -334,9 +341,10 @@
     return "";
   }
 
-  function cell(value, label) {
+  function cell(value, label, className = "") {
     const item = document.createElement("span");
     item.dataset.label = label;
+    if (className) item.className = className;
     item.textContent = value || "-";
     return item;
   }
@@ -379,7 +387,7 @@
         cell(record.address, "Anschrift"),
         cell(record.phone, "Telefon"),
         cell(record.email, "E-Mail"),
-        cell(record.notes, "Notizen")
+        cell(record.notes, "Notizen", "inquiry-notes-output")
       );
 
       const actions = document.createElement("span");

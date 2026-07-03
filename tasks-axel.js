@@ -102,14 +102,6 @@
   `;
   document.head.append(style);
 
-  function axelEmail() {
-    return String(SUPABASE_CONFIG.loginUsers?.Axel || "").toLowerCase();
-  }
-
-  function isAxelUser() {
-    return Boolean(state.currentUser?.email && state.currentUser.email.toLowerCase() === axelEmail());
-  }
-
   function ensureTasksTab() {
     let tab = document.querySelector(`#${TASKS_TAB_ID}`);
     if (!tab) {
@@ -160,11 +152,15 @@
     document.querySelector("#month-view").hidden = state.view !== "month";
     document.querySelector("#year-view").hidden = state.view !== "year";
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
     document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+    document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
+    document.querySelector("#inquiries-tab")?.classList.remove("is-active");
     document.querySelector("#work-reports-tab")?.classList.remove("is-active");
     document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
+    document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
     ensureTasksView().hidden = true;
     ensureTasksTab().classList.remove("is-active");
     hideOrdersView();
@@ -175,11 +171,15 @@
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
     document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
+    document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
     document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
     document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
+    document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
     document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
+    document.querySelector("#inquiries-tab")?.classList.remove("is-active");
     document.querySelector("#work-reports-tab")?.classList.remove("is-active");
     document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
+    document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
     hideOrdersView();
     ensureTasksView().hidden = false;
     elements.rangeLabel.textContent = "Aufgaben Axel";
@@ -188,16 +188,8 @@
 
   function updateVisibility() {
     const tab = ensureTasksTab();
-    const view = ensureTasksView();
-    const visible = isAxelUser();
-    tab.hidden = !visible;
-    if (!visible) {
-      view.hidden = true;
-      if (state.view === "tasks") {
-        state.view = "week";
-        document.querySelector('[data-view="week"]')?.click();
-      }
-    }
+    ensureTasksView();
+    tab.hidden = false;
   }
 
   function renderTasksShell() {
@@ -249,7 +241,7 @@
   }
 
   async function loadTasks() {
-    if (!isAxelUser() || !useRemoteStorage()) return;
+    if (!useRemoteStorage()) return;
     setTasksStatus("Lade Aufgaben...");
     const { data, error } = await supabaseClient
       .from(TASKS_TABLE)
@@ -271,8 +263,8 @@
 
   async function saveTask(event) {
     event.preventDefault();
-    if (!isAxelUser() || !useRemoteStorage()) {
-      setTasksStatus("Bitte als Axel mit Supabase anmelden.");
+    if (!useRemoteStorage()) {
+      setTasksStatus("Bitte mit Supabase anmelden.");
       return;
     }
 
@@ -313,7 +305,7 @@
   }
 
   function subscribeTasks() {
-    if (!isAxelUser() || !useRemoteStorage() || tasksChannel) return;
+    if (!useRemoteStorage() || tasksChannel) return;
     tasksChannel = supabaseClient
       .channel("axel_tasks_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: TASKS_TABLE }, () => {
@@ -323,7 +315,7 @@
   }
 
   function openTasks() {
-    if (!isAxelUser()) return;
+    if (!elements.appShell || elements.appShell.hidden) return;
     state.view = "tasks";
     showTasksView();
     renderTasksShell();
