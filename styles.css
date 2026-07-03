@@ -943,32 +943,55 @@ h1 {
 .maintenance-table {
   --maintenance-columns: 1fr 1.2fr 0.92fr 0.65fr 0.82fr 0.78fr 0.78fr 0.82fr 0.82fr minmax(170px, auto);
   display: grid;
-  gap: 8px;
+  grid-template-columns: var(--maintenance-columns);
+  gap: 8px 10px;
 }
 
 .maintenance-row {
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: var(--maintenance-columns);
-  gap: 10px;
+  display: contents;
+}
+
+.maintenance-row > span {
+  display: flex;
   align-items: center;
   min-height: 46px;
   padding: 9px;
-  border: 1px solid rgba(0, 217, 255, 0.24);
+  border-top: 1px solid rgba(0, 217, 255, 0.24);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.24);
   background: rgba(9, 12, 34, 0.58);
+}
+
+.maintenance-row > span:first-child {
+  border-left: 1px solid rgba(0, 217, 255, 0.24);
+}
+
+.maintenance-row > span:last-child {
+  border-right: 1px solid rgba(0, 217, 255, 0.24);
 }
 
 .maintenance-head {
   box-sizing: border-box;
-  min-height: 36px;
-  grid-template-columns: var(--maintenance-columns);
-  align-items: center;
-  justify-items: stretch;
   color: var(--cyan);
-  background: rgba(7, 11, 31, 0.96);
   font-size: 0.74rem;
   text-transform: uppercase;
   text-shadow: 0 0 10px rgba(0, 217, 255, 0.58);
+}
+
+.maintenance-head > span {
+  min-height: 36px;
+  border: 1px solid rgba(0, 217, 255, 0.24);
+  border-left: 0;
+  border-right: 0;
+  background: rgba(7, 11, 31, 0.96);
+}
+
+.maintenance-head > span:first-child {
+  border-left: 1px solid rgba(0, 217, 255, 0.24);
+}
+
+.maintenance-head > span:last-child {
+  border-right: 1px solid rgba(0, 217, 255, 0.24);
 }
 
 .maintenance-head span {
@@ -987,7 +1010,7 @@ h1 {
   min-width: 0;
   max-width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 9px;
   text-align: left;
   overflow-wrap: anywhere;
 }
@@ -1150,8 +1173,26 @@ h1 {
     grid-template-columns: repeat(2, minmax(210px, 1fr));
   }
 
+  .maintenance-table {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
   .maintenance-row {
+    display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 9px;
+    border: 1px solid rgba(0, 217, 255, 0.24);
+    background: rgba(9, 12, 34, 0.58);
+  }
+
+  .maintenance-row > span {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .maintenance-head {
@@ -1168,6 +1209,7 @@ h1 {
   }
 
   .maintenance-actions {
+    display: flex;
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
