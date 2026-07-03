@@ -112,6 +112,7 @@
     }
 
     .inquiry-row {
+      box-sizing: border-box;
       display: grid;
       grid-template-columns: 0.75fr 0.9fr 0.7fr 0.9fr 1.15fr 0.8fr 1fr 1.1fr minmax(170px, auto);
       gap: 10px;
@@ -123,7 +124,9 @@
     }
 
     .inquiry-head {
+      box-sizing: border-box;
       min-height: 36px;
+      justify-items: stretch;
       color: var(--cyan);
       background: rgba(7, 11, 31, 0.96);
       font-size: 0.74rem;
@@ -132,8 +135,19 @@
     }
 
     .inquiry-row span {
+      justify-self: start;
       min-width: 0;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      text-align: left;
       overflow-wrap: anywhere;
+    }
+
+    .inquiry-head span {
+      display: block;
+      justify-self: stretch;
+      width: 100%;
     }
 
     .inquiry-notes-output {
