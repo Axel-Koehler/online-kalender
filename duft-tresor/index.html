@@ -635,7 +635,7 @@
             <div class="field-grid">
               <label class="field">
                 <span>Fertige Mischung in g</span>
-                <input id="total-weight" min="0" step="10" type="number" value="1000">
+                <input id="total-weight" min="0" step="1" type="number" value="100">
               </label>
 
               <label class="field">
@@ -691,6 +691,7 @@
       const TABLE = "duft_tresor_mixtures";
       const storageKey = "duft-tresor-mixtures-v1";
       const pageMode = window.location.hash === "#gewicht" ? "weight" : "percent";
+      let selectedFragrancePercent = 16;
       const defaultOils = [
         { id: 1, name: "Duftoel 1", share: 0, weight: 0 },
         { id: 2, name: "Duftoel 2", share: 0, weight: 0 },
@@ -895,7 +896,7 @@
                 <span>${pageMode === "weight" ? "Gramm Duftoel" : "% vom Duftoel"}</span>
                 <input data-field="${pageMode === "weight" ? "weight" : "share"}" data-id="${oil.id}" min="0" step="0.1" type="number" value="${pageMode === "weight" ? oil.weight : oil.share}">
               </label>
-              <output class="gram-output" id="oil-output-${oil.id}">0,0 g</output>
+              <output class="gram-output" id="oil-output-${oil.id}">${pageMode === "weight" ? "0,0%" : "0,0 g"}</output>
             </div>
           `)
           .join("");
@@ -929,24 +930,22 @@
         const totalWeight = Math.max(Number(totalWeightInput.value) || 0, 0);
         const fragranceWeightByOil = oils.reduce((sum, oil) => sum + (Number(oil.weight) || 0), 0);
         const fragrancePercent = pageMode === "weight"
-          ? totalWeight > 0
-            ? (fragranceWeightByOil / totalWeight) * 100
-            : 0
+          ? selectedFragrancePercent
           : Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18);
         const fragranceWeight = totalWeight * (fragrancePercent / 100);
         const waxWeight = totalWeight - fragranceWeight;
-        return { totalWeight, fragranceWeight, fragrancePercent, waxWeight };
+        return { totalWeight, fragranceWeight, fragrancePercent, waxWeight, fragranceWeightByOil };
       }
 
       function calculate() {
-        const { totalWeight, fragranceWeight, fragrancePercent, waxWeight } = getTotals();
+        const { totalWeight, fragranceWeight, fragrancePercent, waxWeight, fragranceWeightByOil } = getTotals();
         const activeOils = oils.filter((oil) =>
           oil.name.trim() || (pageMode === "weight" ? oil.weight > 0 : oil.share > 0)
         );
         const shareTotal = pageMode === "weight"
           ? oils.reduce((sum, oil) => sum + Number(oil.weight || 0), 0)
           : activeOils.reduce((sum, oil) => sum + Number(oil.share || 0), 0);
-        const balanced = pageMode === "weight" ? fragrancePercent >= 15 && fragrancePercent <= 18 : Math.abs(shareTotal - 100) < 0.05;
+        const balanced = pageMode === "weight" ? fragranceWeightByOil > 0 : Math.abs(shareTotal - 100) < 0.05;
 
         if (pageMode === "weight") {
           fragrancePercentInput.value = fragranceWeight.toFixed(1);
@@ -959,8 +958,8 @@
         balanceNote.classList.toggle("is-warning", !balanced);
         balanceText.textContent = pageMode === "weight"
           ? balanced
-            ? "Der Duftoelanteil liegt im Zielbereich von 15-18%."
-            : "Der Duftoelanteil sollte zwischen 15% und 18% liegen."
+            ? `Die Oelgewichte werden auf ${formatter.format(fragrancePercent)}% Duftoel bei 100 g fertiger Mischung umgerechnet.`
+            : "Bitte mindestens ein Oelgewicht eingeben."
           : balanced
             ? "Die Duftoele ergeben zusammen 100%."
             : "Die Duftoele sollten zusammen 100% ergeben.";
@@ -969,7 +968,7 @@
           const output = document.querySelector(`#oil-output-${oil.id}`);
           if (output) {
             output.textContent = pageMode === "weight"
-              ? formatPercent(fragranceWeight > 0 ? ((Number(oil.weight) || 0) / fragranceWeight) * 100 : 0)
+              ? formatPercent(fragranceWeightByOil > 0 ? ((Number(oil.weight) || 0) / fragranceWeightByOil) * 100 : 0)
               : formatGram(fragranceWeight * ((Number(oil.share) || 0) / 100));
           }
         });
@@ -1065,8 +1064,9 @@
 
         activeMixtureId = mixture.id;
         mixtureNameInput.value = mixture.name;
-        totalWeightInput.value = mixture.totalWeight;
-        fragrancePercentInput.value = pageMode === "weight" ? mixture.fragranceWeight : mixture.fragrancePercent;
+        totalWeightInput.value = pageMode === "weight" ? 100 : mixture.totalWeight;
+        selectedFragrancePercent = Math.min(Math.max(Number(mixture.fragrancePercent) || 16, 15), 18);
+        fragrancePercentInput.value = pageMode === "weight" ? (100 * (selectedFragrancePercent / 100)).toFixed(1) : mixture.fragrancePercent;
         defaultOils.forEach((defaultOil, index) => {
           const savedOil = mixture.oils.find((oil) => oil.id === defaultOil.id) || defaultOil;
           oils[index] = {
@@ -1111,8 +1111,9 @@
       function newMixture() {
         activeMixtureId = null;
         mixtureNameInput.value = "";
-        totalWeightInput.value = 1000;
-        fragrancePercentInput.value = 16;
+        totalWeightInput.value = 100;
+        selectedFragrancePercent = 16;
+        fragrancePercentInput.value = pageMode === "weight" ? "16.0" : "16";
         defaultOils.forEach((defaultOil, index) => {
           oils[index] = { ...defaultOil };
         });
@@ -1139,6 +1140,7 @@
       document.querySelector(".view-tabs").addEventListener("click", (event) => {
         const button = event.target.closest(".tab-button");
         if (!button) return;
+        selectedFragrancePercent = Number(button.dataset.percent);
         fragrancePercentInput.value = button.dataset.percent;
         calculate();
       });
@@ -1174,10 +1176,12 @@
         document.querySelector("#split-evenly").hidden = pageMode === "weight";
         fragranceMainLabel.textContent = pageMode === "weight" ? "Duftoel gesamt in g" : "Duftoel gesamt in %";
         fragranceResultLabel.textContent = pageMode === "weight" ? "Duftoelanteil" : "Duftoel gesamt";
+        totalWeightInput.value = "100";
+        totalWeightInput.readOnly = pageMode === "weight";
         fragrancePercentInput.min = pageMode === "weight" ? "0" : "15";
         fragrancePercentInput.max = pageMode === "weight" ? "" : "18";
         fragrancePercentInput.readOnly = pageMode === "weight";
-        fragrancePercentInput.value = pageMode === "weight" ? "0" : "16";
+        fragrancePercentInput.value = pageMode === "weight" ? (100 * (selectedFragrancePercent / 100)).toFixed(1) : "16";
         document.querySelector(".status-chip").textContent = pageMode === "weight" ? "Gramm zu Prozent" : "15-18% Duftoel";
       }
     </script>
