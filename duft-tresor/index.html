@@ -162,6 +162,7 @@
       }
 
       .tab-button,
+      .nav-link,
       .primary-button,
       .danger-button,
       .text-button {
@@ -181,6 +182,15 @@
         padding: 0 12px;
       }
 
+      .nav-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 11px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
       .text-button,
       .primary-button,
       .danger-button {
@@ -190,6 +200,8 @@
 
       .tab-button:hover,
       .tab-button:focus-visible,
+      .nav-link:hover,
+      .nav-link:focus-visible,
       .primary-button:hover,
       .primary-button:focus-visible,
       .danger-button:hover,
@@ -207,6 +219,11 @@
         border-color: rgba(248, 255, 19, 0.72);
         background: linear-gradient(180deg, rgba(45, 37, 92, 0.94), rgba(12, 16, 42, 0.96));
         box-shadow: 0 0 12px rgba(248, 255, 19, 0.18), inset 0 -2px 0 rgba(248, 255, 19, 0.72);
+      }
+
+      .nav-link.is-active {
+        color: var(--yellow);
+        border-color: rgba(248, 255, 19, 0.72);
       }
 
       .primary-button {
@@ -514,6 +531,7 @@
         }
 
         .text-button,
+        .nav-link,
         .primary-button,
         .danger-button {
           width: 100%;
@@ -590,6 +608,8 @@
         </div>
 
         <div class="toolbar">
+          <a class="nav-link is-active" id="percent-page-link" href="./">Prozent</a>
+          <a class="nav-link" id="weight-page-link" href="gewicht.html">Gramm</a>
           <button class="text-button" id="split-evenly" type="button">Gleich teilen</button>
         </div>
       </header>
@@ -619,7 +639,7 @@
               </label>
 
               <label class="field">
-                <span>Duftoel gesamt in %</span>
+                <span id="fragrance-main-label">Duftoel gesamt in %</span>
                 <input id="fragrance-percent" max="18" min="15" step="0.1" type="number" value="16">
               </label>
             </div>
@@ -637,11 +657,11 @@
 
           <aside class="result-panel" aria-label="Ergebnis">
             <div class="result-card primary-result">
-              <span>Wachs</span>
-              <strong id="wax-result">0,0 g</strong>
-            </div>
-            <div class="result-card">
-              <span>Duftoel gesamt</span>
+                <span>Wachs</span>
+                <strong id="wax-result">0,0 g</strong>
+              </div>
+              <div class="result-card">
+              <span id="fragrance-result-label">Duftoel gesamt</span>
               <strong id="fragrance-result">0,0 g</strong>
             </div>
             <div class="result-card">
@@ -664,18 +684,24 @@
       </section>
     </main>
 
+    <script src="../supabase-config.js"></script>
     <script>
+      const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
+      const TABLE = "duft_tresor_mixtures";
       const storageKey = "duft-tresor-mixtures-v1";
+      const pageMode = window.location.hash === "#gewicht" ? "weight" : "percent";
       const defaultOils = [
-        { id: 1, name: "Duftoel 1", share: 50 },
-        { id: 2, name: "Duftoel 2", share: 50 },
-        { id: 3, name: "", share: 0 },
-        { id: 4, name: "", share: 0 },
-        { id: 5, name: "", share: 0 },
+        { id: 1, name: "Duftoel 1", share: 0, weight: 0 },
+        { id: 2, name: "Duftoel 2", share: 0, weight: 0 },
+        { id: 3, name: "", share: 0, weight: 0 },
+        { id: 4, name: "", share: 0, weight: 0 },
+        { id: 5, name: "", share: 0, weight: 0 },
       ];
       const oils = defaultOils.map((oil) => ({ ...oil }));
       let savedMixtures = loadSavedMixtures();
       let activeMixtureId = null;
+      let supabaseClient = null;
 
       const formatter = new Intl.NumberFormat("de-DE", {
         minimumFractionDigits: 1,
@@ -685,6 +711,8 @@
       const mixtureNameInput = document.querySelector("#mixture-name");
       const totalWeightInput = document.querySelector("#total-weight");
       const fragrancePercentInput = document.querySelector("#fragrance-percent");
+      const fragranceMainLabel = document.querySelector("#fragrance-main-label");
+      const fragranceResultLabel = document.querySelector("#fragrance-result-label");
       const oilRows = document.querySelector("#oil-rows");
       const savedList = document.querySelector("#saved-list");
       const saveStatus = document.querySelector("#save-status");
@@ -722,9 +750,123 @@
         }
       }
 
+      function isSupabaseConfigured() {
+        return Boolean(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey);
+      }
+
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${src}"]`);
+          if (existing) {
+            resolve();
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function getSupabaseClient() {
+        if (!isSupabaseConfigured()) return null;
+        if (supabaseClient) return supabaseClient;
+        if (!window.supabase) {
+          await loadScript(SUPABASE_CDN);
+        }
+        supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        return supabaseClient;
+      }
+
       function persistSavedMixtures() {
         sortSavedMixtures();
         localStorage.setItem(storageKey, JSON.stringify(savedMixtures));
+      }
+
+      function fromRemoteRow(row) {
+        return {
+          id: row.id,
+          name: row.name || "",
+          mode: row.mode || "percent",
+          totalWeight: Number(row.total_weight) || 0,
+          fragrancePercent: Number(row.fragrance_percent) || 0,
+          fragranceWeight: Number(row.fragrance_weight) || 0,
+          waxWeight: Number(row.wax_weight) || 0,
+          oils: Array.isArray(row.oils) ? row.oils : [],
+          updatedAt: row.updated_at || row.created_at || new Date().toISOString(),
+        };
+      }
+
+      function toRemoteRow(mixture) {
+        const totals = getTotals();
+        return {
+          id: mixture.id && mixture.id.startsWith("mix-") ? undefined : mixture.id,
+          name: mixture.name,
+          mode: mixture.mode || pageMode,
+          total_weight: mixture.totalWeight,
+          fragrance_percent: totals.fragrancePercent,
+          fragrance_weight: totals.fragranceWeight,
+          wax_weight: totals.waxWeight,
+          oils: mixture.oils,
+        };
+      }
+
+      async function loadRemoteMixtures() {
+        const client = await getSupabaseClient();
+        if (!client) {
+          setStatus("Supabase ist nicht konfiguriert. Es wird lokal gespeichert.");
+          renderSavedList();
+          return;
+        }
+
+        const localMixtures = loadSavedMixtures();
+        const { data, error } = await client
+          .from(TABLE)
+          .select("id,name,mode,total_weight,fragrance_percent,fragrance_weight,wax_weight,oils,created_at,updated_at")
+          .order("name", { ascending: true });
+
+        if (error) {
+          console.error(error);
+          setStatus("Oeffentliche Datensaetze konnten nicht geladen werden.");
+          renderSavedList();
+          return;
+        }
+
+        const remoteNames = new Set(data.map((row) => (row.name || "").trim().toLocaleLowerCase("de")));
+        const localOnly = localMixtures.filter((mixture) =>
+          mixture.id?.startsWith("mix-") &&
+          mixture.name &&
+          !remoteNames.has(mixture.name.trim().toLocaleLowerCase("de"))
+        );
+
+        if (localOnly.length) {
+          const payload = localOnly.map((mixture) => {
+            const fragrancePercent = Number(mixture.fragrancePercent) || 0;
+            const totalWeight = Number(mixture.totalWeight) || 0;
+            const fragranceWeight = Number(mixture.fragranceWeight) || totalWeight * (fragrancePercent / 100);
+            return {
+              name: mixture.name,
+              mode: mixture.mode || "percent",
+              total_weight: totalWeight,
+              fragrance_percent: fragrancePercent,
+              fragrance_weight: fragranceWeight,
+              wax_weight: Number(mixture.waxWeight) || totalWeight - fragranceWeight,
+              oils: mixture.oils || [],
+            };
+          });
+          const { data: migrated, error: migrationError } = await client
+            .from(TABLE)
+            .insert(payload)
+            .select("id,name,mode,total_weight,fragrance_percent,fragrance_weight,wax_weight,oils,created_at,updated_at");
+          if (!migrationError && migrated) {
+            data.push(...migrated);
+          }
+        }
+
+        savedMixtures = data.map(fromRemoteRow);
+        persistSavedMixtures();
+        renderSavedList();
       }
 
       function sortSavedMixtures() {
@@ -750,8 +892,8 @@
                 <input data-field="name" data-id="${oil.id}" maxlength="34" placeholder="Duftoel ${oil.id}" type="text" value="${escapeHtml(oil.name)}">
               </label>
               <label class="field">
-                <span>% vom Duftoel</span>
-                <input data-field="share" data-id="${oil.id}" min="0" step="0.1" type="number" value="${oil.share}">
+                <span>${pageMode === "weight" ? "Gramm Duftoel" : "% vom Duftoel"}</span>
+                <input data-field="${pageMode === "weight" ? "weight" : "share"}" data-id="${oil.id}" min="0" step="0.1" type="number" value="${pageMode === "weight" ? oil.weight : oil.share}">
               </label>
               <output class="gram-output" id="oil-output-${oil.id}">0,0 g</output>
             </div>
@@ -772,7 +914,7 @@
             <article class="saved-item ${mixture.id === activeMixtureId ? "is-active" : ""}">
               <div class="saved-info">
                 <strong>${escapeHtml(mixture.name)}</strong>
-                <span>${formatGram(mixture.totalWeight)} · ${formatter.format(mixture.fragrancePercent)}% Duftoel</span>
+                <span>${mixture.mode === "weight" ? "Gramm-Rechner" : "Prozent-Rechner"} - ${formatGram(mixture.totalWeight)} - ${formatter.format(mixture.fragrancePercent)}% Duftoel</span>
               </div>
               <div class="saved-actions">
                 <button class="text-button" data-action="load" data-id="${mixture.id}" type="button">Bearbeiten</button>
@@ -783,28 +925,52 @@
           .join("");
       }
 
-      function calculate() {
+      function getTotals() {
         const totalWeight = Math.max(Number(totalWeightInput.value) || 0, 0);
-        const fragrancePercent = Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18);
+        const fragranceWeightByOil = oils.reduce((sum, oil) => sum + (Number(oil.weight) || 0), 0);
+        const fragrancePercent = pageMode === "weight"
+          ? totalWeight > 0
+            ? (fragranceWeightByOil / totalWeight) * 100
+            : 0
+          : Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18);
         const fragranceWeight = totalWeight * (fragrancePercent / 100);
         const waxWeight = totalWeight - fragranceWeight;
-        const activeOils = oils.filter((oil) => oil.name.trim() || oil.share > 0);
-        const shareTotal = activeOils.reduce((sum, oil) => sum + Number(oil.share || 0), 0);
-        const balanced = Math.abs(shareTotal - 100) < 0.05;
+        return { totalWeight, fragranceWeight, fragrancePercent, waxWeight };
+      }
+
+      function calculate() {
+        const { totalWeight, fragranceWeight, fragrancePercent, waxWeight } = getTotals();
+        const activeOils = oils.filter((oil) =>
+          oil.name.trim() || (pageMode === "weight" ? oil.weight > 0 : oil.share > 0)
+        );
+        const shareTotal = pageMode === "weight"
+          ? oils.reduce((sum, oil) => sum + Number(oil.weight || 0), 0)
+          : activeOils.reduce((sum, oil) => sum + Number(oil.share || 0), 0);
+        const balanced = pageMode === "weight" ? fragrancePercent >= 15 && fragrancePercent <= 18 : Math.abs(shareTotal - 100) < 0.05;
+
+        if (pageMode === "weight") {
+          fragrancePercentInput.value = fragranceWeight.toFixed(1);
+        }
 
         waxResult.textContent = formatGram(waxWeight);
-        fragranceResult.textContent = formatGram(fragranceWeight);
+        fragranceResult.textContent = pageMode === "weight" ? formatPercent(fragrancePercent) : formatGram(fragranceWeight);
         finishedResult.textContent = formatGram(totalWeight);
-        shareResult.textContent = formatPercent(shareTotal);
+        shareResult.textContent = pageMode === "weight" ? formatGram(shareTotal) : formatPercent(shareTotal);
         balanceNote.classList.toggle("is-warning", !balanced);
-        balanceText.textContent = balanced
-          ? "Die Duftoele ergeben zusammen 100%."
-          : "Die Duftoele sollten zusammen 100% ergeben.";
+        balanceText.textContent = pageMode === "weight"
+          ? balanced
+            ? "Der Duftoelanteil liegt im Zielbereich von 15-18%."
+            : "Der Duftoelanteil sollte zwischen 15% und 18% liegen."
+          : balanced
+            ? "Die Duftoele ergeben zusammen 100%."
+            : "Die Duftoele sollten zusammen 100% ergeben.";
 
         oils.forEach((oil) => {
           const output = document.querySelector(`#oil-output-${oil.id}`);
           if (output) {
-            output.textContent = formatGram(fragranceWeight * ((Number(oil.share) || 0) / 100));
+            output.textContent = pageMode === "weight"
+              ? formatPercent(fragranceWeight > 0 ? ((Number(oil.weight) || 0) / fragranceWeight) * 100 : 0)
+              : formatGram(fragranceWeight * ((Number(oil.share) || 0) / 100));
           }
         });
 
@@ -834,21 +1000,26 @@
       }
 
       function currentSnapshot(id) {
+        const totals = getTotals();
         return {
           id: id || `mix-${Date.now()}-${Math.round(Math.random() * 100000)}`,
           name: mixtureNameInput.value.trim(),
-          totalWeight: Math.max(Number(totalWeightInput.value) || 0, 0),
-          fragrancePercent: Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18),
+          mode: pageMode,
+          totalWeight: totals.totalWeight,
+          fragrancePercent: totals.fragrancePercent,
+          fragranceWeight: totals.fragranceWeight,
+          waxWeight: totals.waxWeight,
           oils: oils.map((oil) => ({
             id: oil.id,
             name: oil.name,
             share: Number(oil.share) || 0,
+            weight: Number(oil.weight) || 0,
           })),
           updatedAt: new Date().toISOString(),
         };
       }
 
-      function saveMixture() {
+      async function saveMixture() {
         const name = mixtureNameInput.value.trim();
         if (!name) {
           setStatus("Bitte zuerst einen Namen fuer die Mischung vergeben.");
@@ -857,13 +1028,31 @@
         }
 
         const snapshot = currentSnapshot(activeMixtureId);
-        const existingIndex = savedMixtures.findIndex((mixture) => mixture.id === snapshot.id);
-        if (existingIndex >= 0) {
-          savedMixtures[existingIndex] = snapshot;
-        } else {
-          savedMixtures.unshift(snapshot);
+        const client = await getSupabaseClient();
+
+        if (client) {
+          setStatus("Speichere oeffentlich...");
+          const payload = toRemoteRow(snapshot);
+          const request = activeMixtureId && !activeMixtureId.startsWith("mix-")
+            ? client.from(TABLE).update(payload).eq("id", activeMixtureId)
+            : client.from(TABLE).insert(payload);
+          const { data, error } = await request
+            .select("id,name,mode,total_weight,fragrance_percent,fragrance_weight,wax_weight,oils,created_at,updated_at")
+            .single();
+          if (error) {
+            console.error(error);
+            setStatus("Oeffentliches Speichern fehlgeschlagen.");
+            return;
+          }
+          activeMixtureId = data.id;
+          await loadRemoteMixtures();
+          setStatus(`Mischung "${name}" oeffentlich gespeichert.`);
+          return;
         }
 
+        const existingIndex = savedMixtures.findIndex((mixture) => mixture.id === snapshot.id);
+        if (existingIndex >= 0) savedMixtures[existingIndex] = snapshot;
+        else savedMixtures.unshift(snapshot);
         activeMixtureId = snapshot.id;
         persistSavedMixtures();
         renderSavedList();
@@ -877,13 +1066,14 @@
         activeMixtureId = mixture.id;
         mixtureNameInput.value = mixture.name;
         totalWeightInput.value = mixture.totalWeight;
-        fragrancePercentInput.value = mixture.fragrancePercent;
+        fragrancePercentInput.value = pageMode === "weight" ? mixture.fragranceWeight : mixture.fragrancePercent;
         defaultOils.forEach((defaultOil, index) => {
           const savedOil = mixture.oils.find((oil) => oil.id === defaultOil.id) || defaultOil;
           oils[index] = {
             id: defaultOil.id,
             name: savedOil.name || "",
             share: Number(savedOil.share) || 0,
+            weight: Number(savedOil.weight) || 0,
           };
         });
 
@@ -893,10 +1083,21 @@
         setStatus(`Mischung "${mixture.name}" geladen und bereit zum Bearbeiten.`);
       }
 
-      function deleteMixture(id) {
+      async function deleteMixture(id) {
         const mixture = savedMixtures.find((item) => item.id === id);
         if (!mixture) return;
         if (!window.confirm(`Mischung "${mixture.name}" wirklich loeschen?`)) return;
+
+        const client = await getSupabaseClient();
+        if (client && !id.startsWith("mix-")) {
+          setStatus("Loesche oeffentlich...");
+          const { error } = await client.from(TABLE).delete().eq("id", id);
+          if (error) {
+            console.error(error);
+            setStatus("Oeffentliches Loeschen fehlgeschlagen.");
+            return;
+          }
+        }
 
         savedMixtures = savedMixtures.filter((item) => item.id !== id);
         if (activeMixtureId === id) {
@@ -923,7 +1124,9 @@
 
       renderRows();
       renderSavedList();
+      configureMode();
       calculate();
+      loadRemoteMixtures();
 
       mixtureNameInput.addEventListener("input", () => {
         if (activeMixtureId) {
@@ -959,11 +1162,24 @@
         const input = event.target;
         const oil = oils.find((item) => item.id === Number(input.dataset.id));
         if (!oil) return;
-        oil[input.dataset.field] = input.dataset.field === "share"
+        oil[input.dataset.field] = input.dataset.field === "share" || input.dataset.field === "weight"
           ? Math.max(Number(input.value) || 0, 0)
           : input.value;
         calculate();
       });
+
+      function configureMode() {
+        document.querySelector("#percent-page-link").classList.toggle("is-active", pageMode === "percent");
+        document.querySelector("#weight-page-link").classList.toggle("is-active", pageMode === "weight");
+        document.querySelector("#split-evenly").hidden = pageMode === "weight";
+        fragranceMainLabel.textContent = pageMode === "weight" ? "Duftoel gesamt in g" : "Duftoel gesamt in %";
+        fragranceResultLabel.textContent = pageMode === "weight" ? "Duftoelanteil" : "Duftoel gesamt";
+        fragrancePercentInput.min = pageMode === "weight" ? "0" : "15";
+        fragrancePercentInput.max = pageMode === "weight" ? "" : "18";
+        fragrancePercentInput.readOnly = pageMode === "weight";
+        fragrancePercentInput.value = pageMode === "weight" ? "0" : "16";
+        document.querySelector(".status-chip").textContent = pageMode === "weight" ? "Gramm zu Prozent" : "15-18% Duftoel";
+      }
     </script>
   </body>
 </html>
