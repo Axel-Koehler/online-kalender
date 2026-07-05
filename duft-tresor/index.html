@@ -610,7 +610,6 @@
         <div class="toolbar">
           <a class="nav-link is-active" id="percent-page-link" href="./">Prozent</a>
           <a class="nav-link" id="weight-page-link" href="gewicht.html">Gramm</a>
-          <button class="text-button" id="split-evenly" type="button">Gleich teilen</button>
         </div>
       </header>
 
@@ -978,26 +977,6 @@
         });
       }
 
-      function splitEvenly() {
-        const active = oils.filter((oil) => oil.name.trim() || oil.share > 0);
-        const selected = active.length ? active : oils.slice(0, 2);
-        const share = Number((100 / selected.length).toFixed(2));
-        const remainder = Number((100 - share * (selected.length - 1)).toFixed(2));
-
-        oils.forEach((oil) => {
-          const index = selected.findIndex((selectedOil) => selectedOil.id === oil.id);
-          if (index === -1) {
-            oil.share = 0;
-            return;
-          }
-          oil.name = oil.name || `Duftoel ${oil.id}`;
-          oil.share = index === selected.length - 1 ? remainder : share;
-        });
-
-        renderRows();
-        calculate();
-      }
-
       function currentSnapshot(id) {
         const totals = getTotals();
         return {
@@ -1145,7 +1124,6 @@
         calculate();
       });
 
-      document.querySelector("#split-evenly").addEventListener("click", splitEvenly);
       document.querySelector("#save-mixture").addEventListener("click", saveMixture);
       document.querySelector("#new-mixture").addEventListener("click", newMixture);
 
@@ -1173,7 +1151,6 @@
       function configureMode() {
         document.querySelector("#percent-page-link").classList.toggle("is-active", pageMode === "percent");
         document.querySelector("#weight-page-link").classList.toggle("is-active", pageMode === "weight");
-        document.querySelector("#split-evenly").hidden = pageMode === "weight";
         fragranceMainLabel.textContent = pageMode === "weight" ? "Duftoel gesamt in g" : "Duftoel gesamt in %";
         fragranceResultLabel.textContent = pageMode === "weight" ? "Duftoelanteil" : "Duftoel gesamt";
         totalWeightInput.value = "100";
