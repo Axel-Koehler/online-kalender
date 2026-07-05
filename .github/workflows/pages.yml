@@ -31,6 +31,8 @@ jobs:
           cp index.html styles.css *.js *.png manifest.webmanifest supabase-config.js .nojekyll _site/
           mkdir -p _site/supabase
           cp supabase/*.sql _site/supabase/
+          mkdir -p _site/duft-tresor
+          cp duft-tresor/*.html _site/duft-tresor/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
