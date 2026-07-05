@@ -162,6 +162,8 @@
       }
 
       .tab-button,
+      .primary-button,
+      .danger-button,
       .text-button {
         position: relative;
         min-height: 34px;
@@ -179,13 +181,19 @@
         padding: 0 12px;
       }
 
-      .text-button {
+      .text-button,
+      .primary-button,
+      .danger-button {
         padding: 0 11px;
         white-space: nowrap;
       }
 
       .tab-button:hover,
       .tab-button:focus-visible,
+      .primary-button:hover,
+      .primary-button:focus-visible,
+      .danger-button:hover,
+      .danger-button:focus-visible,
       .text-button:hover,
       .text-button:focus-visible {
         color: #fff;
@@ -199,6 +207,15 @@
         border-color: rgba(248, 255, 19, 0.72);
         background: linear-gradient(180deg, rgba(45, 37, 92, 0.94), rgba(12, 16, 42, 0.96));
         box-shadow: 0 0 12px rgba(248, 255, 19, 0.18), inset 0 -2px 0 rgba(248, 255, 19, 0.72);
+      }
+
+      .primary-button {
+        color: var(--yellow);
+      }
+
+      .danger-button {
+        border-color: rgba(255, 61, 110, 0.74);
+        background: linear-gradient(180deg, rgba(74, 20, 45, 0.94), rgba(32, 9, 28, 0.96));
       }
 
       .calculator-stage {
@@ -270,6 +287,10 @@
 
       .field-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .mix-name-grid {
+        grid-template-columns: minmax(0, 1fr) auto auto;
       }
 
       .field {
@@ -386,6 +407,89 @@
         color: var(--rose);
       }
 
+      .saved-panel {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border: 1px solid rgba(0, 217, 255, 0.36);
+        background: linear-gradient(90deg, rgba(0, 217, 255, 0.06), rgba(255, 45, 253, 0.05)), rgba(4, 7, 25, 0.72);
+        box-shadow: inset 0 0 18px rgba(0, 217, 255, 0.08);
+      }
+
+      .saved-panel h2 {
+        color: var(--yellow);
+        font-size: 1rem;
+        text-transform: uppercase;
+        text-shadow: 0 0 12px rgba(248, 255, 19, 0.48);
+      }
+
+      .saved-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .saved-empty {
+        min-height: 54px;
+        display: grid;
+        place-items: center start;
+        color: var(--muted);
+        font-size: 0.86rem;
+        text-transform: uppercase;
+      }
+
+      .saved-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid rgba(0, 217, 255, 0.24);
+        background: rgba(9, 12, 34, 0.58);
+      }
+
+      .saved-item.is-active {
+        border-color: rgba(248, 255, 19, 0.72);
+        box-shadow: inset 0 -2px 0 rgba(248, 255, 19, 0.42);
+      }
+
+      .saved-info {
+        min-width: 0;
+      }
+
+      .saved-info strong {
+        display: block;
+        overflow: hidden;
+        color: var(--text);
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .saved-info span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .saved-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .saved-actions .text-button,
+      .saved-actions .danger-button {
+        min-height: 30px;
+        padding-inline: 8px;
+        font-size: 0.72rem;
+      }
+
+      .save-status {
+        min-height: 20px;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
       @media (max-width: 900px) {
         .app-shell {
           padding: 8px;
@@ -407,7 +511,9 @@
           justify-self: stretch;
         }
 
-        .text-button {
+        .text-button,
+        .primary-button,
+        .danger-button {
           width: 100%;
         }
 
@@ -434,9 +540,19 @@
 
         .section-header,
         .field-grid,
+        .mix-name-grid,
         .oil-row,
         .oil-head {
           grid-template-columns: 1fr;
+        }
+
+        .saved-item,
+        .saved-actions {
+          grid-template-columns: 1fr;
+        }
+
+        .saved-actions {
+          display: grid;
         }
 
         .section-header {
@@ -484,6 +600,16 @@
               <span class="status-chip">15-18% Duftoel</span>
             </div>
 
+            <div class="field-grid mix-name-grid">
+              <label class="field">
+                <span>Name der Mischung</span>
+                <input id="mixture-name" maxlength="46" placeholder="z. B. Amber Vanille 16%" type="text">
+              </label>
+              <button class="primary-button" id="save-mixture" type="button">Speichern</button>
+              <button class="text-button" id="new-mixture" type="button">Neu</button>
+            </div>
+            <p class="save-status" id="save-status" role="status"></p>
+
             <div class="field-grid">
               <label class="field">
                 <span>Fertige Mischung in g</span>
@@ -526,28 +652,40 @@
               <strong id="share-result">0,0%</strong>
               <p id="balance-text">Die Duftoele sollten zusammen 100% ergeben.</p>
             </div>
+
+            <section class="saved-panel" aria-label="Gespeicherte Mischungen">
+              <h2>Gespeichert</h2>
+              <div class="saved-list" id="saved-list"></div>
+            </section>
           </aside>
         </div>
       </section>
     </main>
 
     <script>
-      const oils = [
+      const storageKey = "duft-tresor-mixtures-v1";
+      const defaultOils = [
         { id: 1, name: "Duftoel 1", share: 50 },
         { id: 2, name: "Duftoel 2", share: 50 },
         { id: 3, name: "", share: 0 },
         { id: 4, name: "", share: 0 },
         { id: 5, name: "", share: 0 },
       ];
+      const oils = defaultOils.map((oil) => ({ ...oil }));
+      let savedMixtures = loadSavedMixtures();
+      let activeMixtureId = null;
 
       const formatter = new Intl.NumberFormat("de-DE", {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       });
 
+      const mixtureNameInput = document.querySelector("#mixture-name");
       const totalWeightInput = document.querySelector("#total-weight");
       const fragrancePercentInput = document.querySelector("#fragrance-percent");
       const oilRows = document.querySelector("#oil-rows");
+      const savedList = document.querySelector("#saved-list");
+      const saveStatus = document.querySelector("#save-status");
       const waxResult = document.querySelector("#wax-result");
       const fragranceResult = document.querySelector("#fragrance-result");
       const finishedResult = document.querySelector("#finished-result");
@@ -563,13 +701,44 @@
         return `${formatter.format(Number.isFinite(value) ? value : 0)}%`;
       }
 
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#039;",
+        })[character]);
+      }
+
+      function loadSavedMixtures() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function persistSavedMixtures() {
+        localStorage.setItem(storageKey, JSON.stringify(savedMixtures));
+      }
+
+      function setStatus(message) {
+        saveStatus.textContent = message;
+        window.clearTimeout(setStatus.timeout);
+        setStatus.timeout = window.setTimeout(() => {
+          saveStatus.textContent = "";
+        }, 3200);
+      }
+
       function renderRows() {
         oilRows.innerHTML = oils
           .map((oil) => `
             <div class="oil-row">
               <label class="field oil-name">
                 <span>Duftoel ${oil.id}</span>
-                <input data-field="name" data-id="${oil.id}" maxlength="34" placeholder="Duftoel ${oil.id}" type="text" value="${oil.name}">
+                <input data-field="name" data-id="${oil.id}" maxlength="34" placeholder="Duftoel ${oil.id}" type="text" value="${escapeHtml(oil.name)}">
               </label>
               <label class="field">
                 <span>% vom Duftoel</span>
@@ -577,6 +746,28 @@
               </label>
               <output class="gram-output" id="oil-output-${oil.id}">0,0 g</output>
             </div>
+          `)
+          .join("");
+      }
+
+      function renderSavedList() {
+        if (!savedMixtures.length) {
+          savedList.innerHTML = '<div class="saved-empty">Noch keine Mischungen gespeichert.</div>';
+          return;
+        }
+
+        savedList.innerHTML = savedMixtures
+          .map((mixture) => `
+            <article class="saved-item ${mixture.id === activeMixtureId ? "is-active" : ""}">
+              <div class="saved-info">
+                <strong>${escapeHtml(mixture.name)}</strong>
+                <span>${formatGram(mixture.totalWeight)} · ${formatter.format(mixture.fragrancePercent)}% Duftoel</span>
+              </div>
+              <div class="saved-actions">
+                <button class="text-button" data-action="load" data-id="${mixture.id}" type="button">Bearbeiten</button>
+                <button class="danger-button" data-action="delete" data-id="${mixture.id}" type="button">Loeschen</button>
+              </div>
+            </article>
           `)
           .join("");
       }
@@ -631,9 +822,103 @@
         calculate();
       }
 
+      function currentSnapshot(id) {
+        return {
+          id: id || `mix-${Date.now()}-${Math.round(Math.random() * 100000)}`,
+          name: mixtureNameInput.value.trim(),
+          totalWeight: Math.max(Number(totalWeightInput.value) || 0, 0),
+          fragrancePercent: Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18),
+          oils: oils.map((oil) => ({
+            id: oil.id,
+            name: oil.name,
+            share: Number(oil.share) || 0,
+          })),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      function saveMixture() {
+        const name = mixtureNameInput.value.trim();
+        if (!name) {
+          setStatus("Bitte zuerst einen Namen fuer die Mischung vergeben.");
+          mixtureNameInput.focus();
+          return;
+        }
+
+        const snapshot = currentSnapshot(activeMixtureId);
+        const existingIndex = savedMixtures.findIndex((mixture) => mixture.id === snapshot.id);
+        if (existingIndex >= 0) {
+          savedMixtures[existingIndex] = snapshot;
+        } else {
+          savedMixtures.unshift(snapshot);
+        }
+
+        activeMixtureId = snapshot.id;
+        persistSavedMixtures();
+        renderSavedList();
+        setStatus(`Mischung "${name}" gespeichert.`);
+      }
+
+      function loadMixture(id) {
+        const mixture = savedMixtures.find((item) => item.id === id);
+        if (!mixture) return;
+
+        activeMixtureId = mixture.id;
+        mixtureNameInput.value = mixture.name;
+        totalWeightInput.value = mixture.totalWeight;
+        fragrancePercentInput.value = mixture.fragrancePercent;
+        defaultOils.forEach((defaultOil, index) => {
+          const savedOil = mixture.oils.find((oil) => oil.id === defaultOil.id) || defaultOil;
+          oils[index] = {
+            id: defaultOil.id,
+            name: savedOil.name || "",
+            share: Number(savedOil.share) || 0,
+          };
+        });
+
+        renderRows();
+        renderSavedList();
+        calculate();
+        setStatus(`Mischung "${mixture.name}" geladen und bereit zum Bearbeiten.`);
+      }
+
+      function deleteMixture(id) {
+        const mixture = savedMixtures.find((item) => item.id === id);
+        if (!mixture) return;
+        if (!window.confirm(`Mischung "${mixture.name}" wirklich loeschen?`)) return;
+
+        savedMixtures = savedMixtures.filter((item) => item.id !== id);
+        if (activeMixtureId === id) {
+          activeMixtureId = null;
+        }
+        persistSavedMixtures();
+        renderSavedList();
+        setStatus(`Mischung "${mixture.name}" geloescht.`);
+      }
+
+      function newMixture() {
+        activeMixtureId = null;
+        mixtureNameInput.value = "";
+        totalWeightInput.value = 1000;
+        fragrancePercentInput.value = 16;
+        defaultOils.forEach((defaultOil, index) => {
+          oils[index] = { ...defaultOil };
+        });
+        renderRows();
+        renderSavedList();
+        calculate();
+        setStatus("Neue Mischung angelegt.");
+      }
+
       renderRows();
+      renderSavedList();
       calculate();
 
+      mixtureNameInput.addEventListener("input", () => {
+        if (activeMixtureId) {
+          renderSavedList();
+        }
+      });
       totalWeightInput.addEventListener("input", calculate);
       fragrancePercentInput.addEventListener("input", calculate);
 
@@ -645,6 +930,19 @@
       });
 
       document.querySelector("#split-evenly").addEventListener("click", splitEvenly);
+      document.querySelector("#save-mixture").addEventListener("click", saveMixture);
+      document.querySelector("#new-mixture").addEventListener("click", newMixture);
+
+      savedList.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+        if (button.dataset.action === "load") {
+          loadMixture(button.dataset.id);
+        }
+        if (button.dataset.action === "delete") {
+          deleteMixture(button.dataset.id);
+        }
+      });
 
       oilRows.addEventListener("input", (event) => {
         const input = event.target;
