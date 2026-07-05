@@ -408,8 +408,9 @@
       }
 
       .saved-panel {
+        grid-column: 1 / -1;
         display: grid;
-        gap: 10px;
+        gap: 12px;
         padding: 16px;
         border: 1px solid rgba(0, 217, 255, 0.36);
         background: linear-gradient(90deg, rgba(0, 217, 255, 0.06), rgba(255, 45, 253, 0.05)), rgba(4, 7, 25, 0.72);
@@ -425,6 +426,7 @@
 
       .saved-list {
         display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 8px;
       }
 
@@ -652,12 +654,12 @@
               <strong id="share-result">0,0%</strong>
               <p id="balance-text">Die Duftoele sollten zusammen 100% ergeben.</p>
             </div>
-
-            <section class="saved-panel" aria-label="Gespeicherte Mischungen">
-              <h2>Gespeichert</h2>
-              <div class="saved-list" id="saved-list"></div>
-            </section>
           </aside>
+
+          <section class="saved-panel" aria-label="Gespeicherte Mischungen">
+            <h2>Gespeichert</h2>
+            <div class="saved-list" id="saved-list"></div>
+          </section>
         </div>
       </section>
     </main>
@@ -721,7 +723,14 @@
       }
 
       function persistSavedMixtures() {
+        sortSavedMixtures();
         localStorage.setItem(storageKey, JSON.stringify(savedMixtures));
+      }
+
+      function sortSavedMixtures() {
+        savedMixtures.sort((first, second) =>
+          first.name.localeCompare(second.name, "de", { sensitivity: "base" })
+        );
       }
 
       function setStatus(message) {
@@ -751,6 +760,8 @@
       }
 
       function renderSavedList() {
+        sortSavedMixtures();
+
         if (!savedMixtures.length) {
           savedList.innerHTML = '<div class="saved-empty">Noch keine Mischungen gespeichert.</div>';
           return;
