@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#070812">
+    <title>Duft Tresor - Mischungsrechner</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070812;
+        --panel: rgba(8, 7, 27, 0.94);
+        --line-strong: rgba(0, 217, 255, 0.72);
+        --text: #f7fbff;
+        --muted: #9da7d7;
+        --cyan: #00d9ff;
+        --magenta: #ff2dfd;
+        --yellow: #f8ff13;
+        --orange: #ff9f1c;
+        --rose: #ff3d6e;
+        --shadow: 0 0 24px rgba(103, 54, 255, 0.45), 0 0 48px rgba(255, 45, 253, 0.24);
+        --field-height: 44px;
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        font-weight: 400 !important;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 5px),
+          linear-gradient(180deg, rgba(5, 7, 20, 0.62), rgba(5, 7, 20, 0.92)),
+          linear-gradient(90deg, rgba(0, 217, 255, 0.08), rgba(255, 45, 253, 0.12), rgba(248, 255, 19, 0.05)),
+          var(--bg);
+        letter-spacing: 0;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background:
+          linear-gradient(90deg, rgba(0, 217, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(255, 45, 253, 0.06) 1px, transparent 1px);
+        background-size: 72px 72px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 82%);
+        pointer-events: none;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background:
+          linear-gradient(135deg, transparent 0 17%, rgba(0, 217, 255, 0.08) 17% 18%, transparent 18% 55%, rgba(248, 255, 19, 0.06) 55% 56%, transparent 56%),
+          linear-gradient(225deg, transparent 0 24%, rgba(255, 45, 253, 0.1) 24% 25%, transparent 25%);
+        pointer-events: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        padding: clamp(10px, 2vw, 24px);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 10px;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) auto minmax(160px, 0.5fr);
+        gap: 18px;
+        align-items: center;
+        width: min(1220px, 100%);
+        margin: 0 auto 16px;
+        padding: 16px clamp(14px, 2.5vw, 28px);
+        background:
+          linear-gradient(90deg, rgba(248, 255, 19, 0.1), transparent 12%, rgba(103, 54, 255, 0.18) 50%, transparent 88%, rgba(0, 217, 255, 0.1)),
+          var(--panel);
+        border: 1px solid var(--line-strong);
+        box-shadow: var(--shadow), inset 0 0 18px rgba(0, 217, 255, 0.12);
+        backdrop-filter: blur(18px);
+      }
+
+      .topbar::before,
+      .calculator-shell::before {
+        content: "";
+        position: absolute;
+        inset: 5px 12px;
+        border-top: 1px solid rgba(198, 31, 255, 0.72);
+        border-bottom: 1px solid rgba(198, 31, 255, 0.72);
+        pointer-events: none;
+      }
+
+      .brand-block {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        clip-path: polygon(50% 0, 100% 27%, 100% 73%, 50% 100%, 0 73%, 0 27%);
+        background: linear-gradient(135deg, var(--yellow), var(--orange) 24%, var(--magenta) 58%, var(--cyan));
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.46), 0 0 26px rgba(255, 45, 253, 0.28);
+      }
+
+      h1 {
+        color: rgba(247, 251, 255, 0.98);
+        font-size: clamp(1.05rem, 1.45vw, 1.45rem);
+        line-height: 1.1;
+        text-transform: uppercase;
+        text-shadow: 0 0 12px rgba(0, 217, 255, 0.72);
+      }
+
+      .range-label {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+
+      .view-tabs {
+        display: inline-grid;
+        grid-auto-flow: column;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .toolbar {
+        justify-self: end;
+      }
+
+      .tab-button,
+      .text-button {
+        position: relative;
+        min-height: 34px;
+        border: 1px solid rgba(0, 217, 255, 0.46);
+        border-radius: 4px;
+        color: rgba(247, 251, 255, 0.94);
+        background: linear-gradient(180deg, rgba(25, 29, 68, 0.92), rgba(8, 12, 36, 0.94));
+        box-shadow: 0 0 10px rgba(0, 217, 255, 0.18), inset 0 0 8px rgba(0, 217, 255, 0.1);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+      }
+
+      .tab-button {
+        min-width: 62px;
+        padding: 0 12px;
+      }
+
+      .text-button {
+        padding: 0 11px;
+        white-space: nowrap;
+      }
+
+      .tab-button:hover,
+      .tab-button:focus-visible,
+      .text-button:hover,
+      .text-button:focus-visible {
+        color: #fff;
+        border-color: rgba(248, 255, 19, 0.92);
+        outline: none;
+        box-shadow: 0 0 12px rgba(248, 255, 19, 0.18), inset 0 -2px 0 rgba(248, 255, 19, 0.48);
+      }
+
+      .tab-button.is-active {
+        color: var(--yellow);
+        border-color: rgba(248, 255, 19, 0.72);
+        background: linear-gradient(180deg, rgba(45, 37, 92, 0.94), rgba(12, 16, 42, 0.96));
+        box-shadow: 0 0 12px rgba(248, 255, 19, 0.18), inset 0 -2px 0 rgba(248, 255, 19, 0.72);
+      }
+
+      .calculator-stage {
+        width: min(1220px, 100%);
+        margin: 0 auto;
+        padding: clamp(8px, 2vw, 18px) 0;
+      }
+
+      .calculator-shell {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+        gap: clamp(14px, 2vw, 20px);
+        padding: clamp(14px, 2vw, 22px);
+        background:
+          linear-gradient(135deg, rgba(248, 255, 19, 0.08), transparent 18%),
+          linear-gradient(225deg, rgba(255, 45, 253, 0.12), transparent 24%),
+          var(--panel);
+        border: 1px solid var(--line-strong);
+        box-shadow: var(--shadow), inset 0 0 24px rgba(0, 217, 255, 0.08);
+      }
+
+      .input-panel,
+      .result-panel {
+        min-width: 0;
+      }
+
+      .input-panel {
+        display: grid;
+        gap: 16px;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .section-header h2 {
+        color: var(--yellow);
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        text-shadow: 0 0 12px rgba(248, 255, 19, 0.48);
+      }
+
+      .status-chip {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        color: #10120d;
+        background: var(--yellow);
+        border: 1px solid rgba(248, 255, 19, 0.9);
+        clip-path: polygon(12% 0, 100% 0, 100% 76%, 88% 100%, 0 100%, 0 24%);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        box-shadow: 0 0 16px rgba(248, 255, 19, 0.36);
+      }
+
+      .field-grid,
+      .oil-row,
+      .oil-head {
+        display: grid;
+        grid-template-columns: 1.4fr 0.75fr 0.7fr;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .field-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        color: var(--cyan);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        text-shadow: 0 0 9px rgba(0, 217, 255, 0.45);
+      }
+
+      .field input {
+        width: 100%;
+        height: var(--field-height);
+        min-height: var(--field-height);
+        border: 1px solid rgba(0, 217, 255, 0.48);
+        border-radius: 0;
+        padding: 10px 11px;
+        color: var(--text);
+        background: rgba(3, 6, 22, 0.82);
+        box-shadow: inset 0 0 14px rgba(0, 217, 255, 0.08);
+        text-transform: none;
+      }
+
+      .field input:focus {
+        border-color: var(--yellow);
+        outline: none;
+        box-shadow: 0 0 16px rgba(248, 255, 19, 0.18), inset 0 0 14px rgba(0, 217, 255, 0.12);
+      }
+
+      .oil-table {
+        display: grid;
+        gap: 8px;
+      }
+
+      .oil-head {
+        min-height: 36px;
+        padding: 0 9px;
+        color: var(--cyan);
+        background: rgba(7, 11, 31, 0.96);
+        border: 1px solid rgba(0, 217, 255, 0.24);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(0, 217, 255, 0.58);
+      }
+
+      .oil-row {
+        padding: 9px;
+        border: 1px solid rgba(0, 217, 255, 0.24);
+        background: rgba(9, 12, 34, 0.58);
+      }
+
+      .gram-output {
+        min-height: var(--field-height);
+        display: grid;
+        place-items: center end;
+        padding: 0 11px;
+        color: var(--yellow);
+        background: rgba(3, 6, 22, 0.82);
+        border: 1px solid rgba(248, 255, 19, 0.44);
+        text-shadow: 0 0 10px rgba(248, 255, 19, 0.4);
+        white-space: nowrap;
+      }
+
+      .result-panel {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .result-card,
+      .balance-note {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+        border: 1px solid rgba(0, 217, 255, 0.36);
+        background: linear-gradient(90deg, rgba(0, 217, 255, 0.06), rgba(255, 45, 253, 0.05)), rgba(4, 7, 25, 0.72);
+        box-shadow: inset 0 0 18px rgba(0, 217, 255, 0.08);
+      }
+
+      .result-card span,
+      .balance-note span {
+        color: var(--cyan);
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(0, 217, 255, 0.58);
+      }
+
+      .result-card strong,
+      .balance-note strong {
+        color: var(--text);
+        font-size: clamp(1.65rem, 4vw, 2.35rem);
+        line-height: 1;
+        text-shadow: 0 0 12px rgba(0, 217, 255, 0.48);
+      }
+
+      .primary-result strong {
+        color: var(--yellow);
+        text-shadow: 0 0 16px rgba(248, 255, 19, 0.44);
+      }
+
+      .balance-note p {
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.4;
+      }
+
+      .balance-note.is-warning {
+        border-color: rgba(255, 61, 110, 0.72);
+        box-shadow: inset 0 0 18px rgba(255, 61, 110, 0.1);
+      }
+
+      .balance-note.is-warning strong {
+        color: var(--rose);
+      }
+
+      @media (max-width: 900px) {
+        .app-shell {
+          padding: 8px;
+        }
+
+        .topbar {
+          top: 8px;
+          grid-template-columns: 1fr;
+          gap: 12px;
+          align-items: stretch;
+        }
+
+        .view-tabs {
+          justify-self: stretch;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .toolbar {
+          justify-self: stretch;
+        }
+
+        .text-button {
+          width: 100%;
+        }
+
+        .calculator-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .brand-mark {
+          width: 36px;
+          height: 36px;
+        }
+
+        .range-label {
+          font-size: 0.84rem;
+        }
+
+        .tab-button {
+          min-width: 0;
+          padding-inline: 8px;
+          font-size: 0.76rem;
+        }
+
+        .section-header,
+        .field-grid,
+        .oil-row,
+        .oil-head {
+          grid-template-columns: 1fr;
+        }
+
+        .section-header {
+          align-items: stretch;
+        }
+
+        .oil-head {
+          display: none;
+        }
+
+        .gram-output {
+          place-items: center start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>Duft Tresor - Mischungsrechner</h1>
+            <p class="range-label">Wachs und bis zu 5 Duftoele in Gramm berechnen</p>
+          </div>
+        </div>
+
+        <div class="view-tabs" aria-label="Duftanteil">
+          <button class="tab-button" data-percent="15" type="button">15%</button>
+          <button class="tab-button is-active" data-percent="16" type="button">16%</button>
+          <button class="tab-button" data-percent="17" type="button">17%</button>
+          <button class="tab-button" data-percent="18" type="button">18%</button>
+        </div>
+
+        <div class="toolbar">
+          <button class="text-button" id="split-evenly" type="button">Gleich teilen</button>
+        </div>
+      </header>
+
+      <section class="calculator-stage">
+        <div class="calculator-shell">
+          <section class="input-panel" aria-label="Mischung">
+            <div class="section-header">
+              <h2>Mischung</h2>
+              <span class="status-chip">15-18% Duftoel</span>
+            </div>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Fertige Mischung in g</span>
+                <input id="total-weight" min="0" step="10" type="number" value="1000">
+              </label>
+
+              <label class="field">
+                <span>Duftoel gesamt in %</span>
+                <input id="fragrance-percent" max="18" min="15" step="0.1" type="number" value="16">
+              </label>
+            </div>
+
+            <div class="oil-table" aria-label="Duftoele">
+              <div class="oil-head">
+                <span>Oel</span>
+                <span>Anteil</span>
+                <span>Gramm</span>
+              </div>
+
+              <div id="oil-rows"></div>
+            </div>
+          </section>
+
+          <aside class="result-panel" aria-label="Ergebnis">
+            <div class="result-card primary-result">
+              <span>Wachs</span>
+              <strong id="wax-result">0,0 g</strong>
+            </div>
+            <div class="result-card">
+              <span>Duftoel gesamt</span>
+              <strong id="fragrance-result">0,0 g</strong>
+            </div>
+            <div class="result-card">
+              <span>Fertige Mischung</span>
+              <strong id="finished-result">0,0 g</strong>
+            </div>
+
+            <div class="balance-note" id="balance-note">
+              <span>Oelanteile</span>
+              <strong id="share-result">0,0%</strong>
+              <p id="balance-text">Die Duftoele sollten zusammen 100% ergeben.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const oils = [
+        { id: 1, name: "Duftoel 1", share: 50 },
+        { id: 2, name: "Duftoel 2", share: 50 },
+        { id: 3, name: "", share: 0 },
+        { id: 4, name: "", share: 0 },
+        { id: 5, name: "", share: 0 },
+      ];
+
+      const formatter = new Intl.NumberFormat("de-DE", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      });
+
+      const totalWeightInput = document.querySelector("#total-weight");
+      const fragrancePercentInput = document.querySelector("#fragrance-percent");
+      const oilRows = document.querySelector("#oil-rows");
+      const waxResult = document.querySelector("#wax-result");
+      const fragranceResult = document.querySelector("#fragrance-result");
+      const finishedResult = document.querySelector("#finished-result");
+      const shareResult = document.querySelector("#share-result");
+      const balanceNote = document.querySelector("#balance-note");
+      const balanceText = document.querySelector("#balance-text");
+
+      function formatGram(value) {
+        return `${formatter.format(Number.isFinite(value) ? value : 0)} g`;
+      }
+
+      function formatPercent(value) {
+        return `${formatter.format(Number.isFinite(value) ? value : 0)}%`;
+      }
+
+      function renderRows() {
+        oilRows.innerHTML = oils
+          .map((oil) => `
+            <div class="oil-row">
+              <label class="field oil-name">
+                <span>Duftoel ${oil.id}</span>
+                <input data-field="name" data-id="${oil.id}" maxlength="34" placeholder="Duftoel ${oil.id}" type="text" value="${oil.name}">
+              </label>
+              <label class="field">
+                <span>% vom Duftoel</span>
+                <input data-field="share" data-id="${oil.id}" min="0" step="0.1" type="number" value="${oil.share}">
+              </label>
+              <output class="gram-output" id="oil-output-${oil.id}">0,0 g</output>
+            </div>
+          `)
+          .join("");
+      }
+
+      function calculate() {
+        const totalWeight = Math.max(Number(totalWeightInput.value) || 0, 0);
+        const fragrancePercent = Math.min(Math.max(Number(fragrancePercentInput.value) || 15, 15), 18);
+        const fragranceWeight = totalWeight * (fragrancePercent / 100);
+        const waxWeight = totalWeight - fragranceWeight;
+        const activeOils = oils.filter((oil) => oil.name.trim() || oil.share > 0);
+        const shareTotal = activeOils.reduce((sum, oil) => sum + Number(oil.share || 0), 0);
+        const balanced = Math.abs(shareTotal - 100) < 0.05;
+
+        waxResult.textContent = formatGram(waxWeight);
+        fragranceResult.textContent = formatGram(fragranceWeight);
+        finishedResult.textContent = formatGram(totalWeight);
+        shareResult.textContent = formatPercent(shareTotal);
+        balanceNote.classList.toggle("is-warning", !balanced);
+        balanceText.textContent = balanced
+          ? "Die Duftoele ergeben zusammen 100%."
+          : "Die Duftoele sollten zusammen 100% ergeben.";
+
+        oils.forEach((oil) => {
+          const output = document.querySelector(`#oil-output-${oil.id}`);
+          if (output) {
+            output.textContent = formatGram(fragranceWeight * ((Number(oil.share) || 0) / 100));
+          }
+        });
+
+        document.querySelectorAll(".tab-button").forEach((button) => {
+          button.classList.toggle("is-active", Number(button.dataset.percent) === Math.round(fragrancePercent));
+        });
+      }
+
+      function splitEvenly() {
+        const active = oils.filter((oil) => oil.name.trim() || oil.share > 0);
+        const selected = active.length ? active : oils.slice(0, 2);
+        const share = Number((100 / selected.length).toFixed(2));
+        const remainder = Number((100 - share * (selected.length - 1)).toFixed(2));
+
+        oils.forEach((oil) => {
+          const index = selected.findIndex((selectedOil) => selectedOil.id === oil.id);
+          if (index === -1) {
+            oil.share = 0;
+            return;
+          }
+          oil.name = oil.name || `Duftoel ${oil.id}`;
+          oil.share = index === selected.length - 1 ? remainder : share;
+        });
+
+        renderRows();
+        calculate();
+      }
+
+      renderRows();
+      calculate();
+
+      totalWeightInput.addEventListener("input", calculate);
+      fragrancePercentInput.addEventListener("input", calculate);
+
+      document.querySelector(".view-tabs").addEventListener("click", (event) => {
+        const button = event.target.closest(".tab-button");
+        if (!button) return;
+        fragrancePercentInput.value = button.dataset.percent;
+        calculate();
+      });
+
+      document.querySelector("#split-evenly").addEventListener("click", splitEvenly);
+
+      oilRows.addEventListener("input", (event) => {
+        const input = event.target;
+        const oil = oils.find((item) => item.id === Number(input.dataset.id));
+        if (!oil) return;
+        oil[input.dataset.field] = input.dataset.field === "share"
+          ? Math.max(Number(input.value) || 0, 0)
+          : input.value;
+        calculate();
+      });
+    </script>
+  </body>
+</html>
