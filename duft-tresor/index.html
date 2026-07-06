@@ -628,7 +628,7 @@
 
             <div class="field-grid mix-name-grid">
               <label class="field">
-                <span>Name der Mischung</span>
+                <span id="mixture-name-label">Name der Mischung</span>
                 <input id="mixture-name" maxlength="46" placeholder="z. B. Amber Vanille 16%" type="text">
               </label>
               <button class="primary-button" id="save-mixture" type="button">Speichern</button>
@@ -652,8 +652,8 @@
             <div class="oil-table" aria-label="Duftoele">
               <div class="oil-head">
                 <span>Oel</span>
-                <span>Anteil</span>
-                <span>Gramm</span>
+                <span id="oil-input-head">Anteil</span>
+                <span id="oil-output-head">Gramm</span>
               </div>
 
               <div id="oil-rows"></div>
@@ -710,6 +710,7 @@
       let savedMixtures = loadSavedMixtures();
       let activeMixtureId = null;
       let supabaseClient = null;
+      let keepTransferredGramValues = false;
 
       const formatter = new Intl.NumberFormat("de-DE", {
         minimumFractionDigits: 1,
@@ -717,10 +718,13 @@
       });
 
       const mixtureNameInput = document.querySelector("#mixture-name");
+      const mixtureNameLabel = document.querySelector("#mixture-name-label");
       const totalWeightInput = document.querySelector("#total-weight");
       const fragrancePercentInput = document.querySelector("#fragrance-percent");
       const fragranceMainLabel = document.querySelector("#fragrance-main-label");
       const fragranceResultLabel = document.querySelector("#fragrance-result-label");
+      const oilInputHead = document.querySelector("#oil-input-head");
+      const oilOutputHead = document.querySelector("#oil-output-head");
       const mixTotalFields = document.querySelector("#mix-total-fields");
       const transferButton = document.querySelector("#transfer-to-percent");
       const oilRows = document.querySelector("#oil-rows");
@@ -984,9 +988,10 @@
         oils.forEach((oil) => {
           const output = document.querySelector(`#oil-output-${oil.id}`);
           if (output) {
+            const calculatedGramValue = fragranceWeight * ((Number(oil.share) || 0) / 100);
             output.textContent = pageMode === "weight"
               ? formatPercent(fragranceWeightByOil > 0 ? ((Number(oil.weight) || 0) / fragranceWeightByOil) * 100 : 0)
-              : formatGram(fragranceWeight * ((Number(oil.share) || 0) / 100));
+              : formatGram(keepTransferredGramValues ? Number(oil.weight) || 0 : calculatedGramValue);
           }
         });
 
@@ -1060,6 +1065,7 @@
         if (!mixture) return;
 
         activeMixtureId = mixture.id;
+        keepTransferredGramValues = false;
         mixtureNameInput.value = mixture.name;
         totalWeightInput.value = pageMode === "weight" ? 100 : mixture.totalWeight;
         selectedFragrancePercent = Math.min(Math.max(Number(mixture.fragrancePercent) || 16, 15), 18);
@@ -1107,6 +1113,7 @@
 
       function newMixture() {
         activeMixtureId = null;
+        keepTransferredGramValues = false;
         mixtureNameInput.value = "";
         totalWeightInput.value = 100;
         selectedFragrancePercent = 16;
@@ -1136,6 +1143,7 @@
             share: ((Number(oil.weight) || 0) / fragranceWeightByOil) * 100,
             weight: Number(oil.weight) || 0,
           })),
+          keepGramValues: true,
         };
 
         sessionStorage.setItem(transferKey, JSON.stringify(transfer));
@@ -1151,6 +1159,7 @@
         try {
           const transfer = JSON.parse(rawTransfer);
           activeMixtureId = null;
+          keepTransferredGramValues = Boolean(transfer.keepGramValues);
           mixtureNameInput.value = transfer.name || "";
           totalWeightInput.value = 100;
           selectedFragrancePercent = Math.min(Math.max(Number(transfer.fragrancePercent) || 16, 15), 18);
@@ -1183,12 +1192,19 @@
           renderSavedList();
         }
       });
-      totalWeightInput.addEventListener("input", calculate);
-      fragrancePercentInput.addEventListener("input", calculate);
+      totalWeightInput.addEventListener("input", () => {
+        keepTransferredGramValues = false;
+        calculate();
+      });
+      fragrancePercentInput.addEventListener("input", () => {
+        keepTransferredGramValues = false;
+        calculate();
+      });
 
       document.querySelector(".view-tabs").addEventListener("click", (event) => {
         const button = event.target.closest(".tab-button");
         if (!button) return;
+        keepTransferredGramValues = false;
         selectedFragrancePercent = Number(button.dataset.percent);
         fragrancePercentInput.value = button.dataset.percent;
         calculate();
@@ -1216,6 +1232,9 @@
         oil[input.dataset.field] = input.dataset.field === "share" || input.dataset.field === "weight"
           ? Math.max(Number(input.value) || 0, 0)
           : input.value;
+        if (input.dataset.field === "share") {
+          keepTransferredGramValues = false;
+        }
         calculate();
       });
 
@@ -1226,6 +1245,9 @@
         resultPanel.hidden = pageMode === "weight";
         savedPanel.hidden = pageMode === "weight";
         transferButton.hidden = pageMode !== "weight";
+        mixtureNameLabel.textContent = pageMode === "weight" ? "Name der Mischung" : "Inhalt der Mischung";
+        oilInputHead.textContent = pageMode === "weight" ? "Gramm Duftoel" : "Anteil";
+        oilOutputHead.textContent = pageMode === "weight" ? "Prozent" : "Gramm";
         fragranceMainLabel.textContent = pageMode === "weight" ? "Duftoel gesamt in g" : "Duftoel gesamt in %";
         fragranceResultLabel.textContent = pageMode === "weight" ? "Duftoelanteil" : "Duftoel gesamt";
         totalWeightInput.value = "100";
