@@ -509,6 +509,11 @@
         font-size: 0.84rem;
       }
 
+      .weight-warning {
+        color: var(--rose);
+        font-weight: 700;
+      }
+
       @media (max-width: 900px) {
         .app-shell {
           padding: 8px;
@@ -627,11 +632,12 @@
                 <input id="mixture-name" maxlength="46" placeholder="z. B. Amber Vanille 16%" type="text">
               </label>
               <button class="primary-button" id="save-mixture" type="button">Speichern</button>
+              <button class="primary-button" id="transfer-to-percent" type="button" hidden>&Uuml;bertragen</button>
               <button class="text-button" id="new-mixture" type="button">Neu</button>
             </div>
             <p class="save-status" id="save-status" role="status"></p>
 
-            <div class="field-grid">
+            <div class="field-grid" id="mix-total-fields">
               <label class="field">
                 <span>Fertige Mischung in g</span>
                 <input id="total-weight" min="0" step="1" type="number" value="100">
@@ -652,6 +658,7 @@
 
               <div id="oil-rows"></div>
             </div>
+            <p class="save-status weight-warning" id="weight-warning" role="alert"></p>
           </section>
 
           <aside class="result-panel" aria-label="Ergebnis">
@@ -689,6 +696,7 @@
       const SUPABASE_CONFIG = window.KALENDER_SUPABASE_CONFIG || {};
       const TABLE = "duft_tresor_mixtures";
       const storageKey = "duft-tresor-mixtures-v1";
+      const transferKey = "duft-tresor-transfer-v1";
       const pageMode = window.location.hash === "#gewicht" ? "weight" : "percent";
       let selectedFragrancePercent = 16;
       const defaultOils = [
@@ -713,9 +721,14 @@
       const fragrancePercentInput = document.querySelector("#fragrance-percent");
       const fragranceMainLabel = document.querySelector("#fragrance-main-label");
       const fragranceResultLabel = document.querySelector("#fragrance-result-label");
+      const mixTotalFields = document.querySelector("#mix-total-fields");
+      const transferButton = document.querySelector("#transfer-to-percent");
       const oilRows = document.querySelector("#oil-rows");
       const savedList = document.querySelector("#saved-list");
+      const savedPanel = document.querySelector(".saved-panel");
+      const resultPanel = document.querySelector(".result-panel");
       const saveStatus = document.querySelector("#save-status");
+      const weightWarning = document.querySelector("#weight-warning");
       const waxResult = document.querySelector("#wax-result");
       const fragranceResult = document.querySelector("#fragrance-result");
       const finishedResult = document.querySelector("#finished-result");
@@ -948,6 +961,11 @@
 
         if (pageMode === "weight") {
           fragrancePercentInput.value = fragranceWeight.toFixed(1);
+          weightWarning.textContent = fragranceWeightByOil > fragranceWeight
+            ? `Warnung: ${formatGram(fragranceWeightByOil)} Duftoel eingegeben. Erlaubt sind bei ${formatter.format(fragrancePercent)}% von 100 g nur ${formatGram(fragranceWeight)}.`
+            : "";
+        } else {
+          weightWarning.textContent = "";
         }
 
         waxResult.textContent = formatGram(waxWeight);
@@ -1102,9 +1120,61 @@
         setStatus("Neue Mischung angelegt.");
       }
 
+      function transferToPercentPage() {
+        const { fragrancePercent, fragranceWeightByOil } = getTotals();
+        if (fragranceWeightByOil <= 0) {
+          setStatus("Bitte zuerst mindestens ein Oelgewicht eingeben.");
+          return;
+        }
+
+        const transfer = {
+          name: mixtureNameInput.value.trim(),
+          fragrancePercent,
+          oils: oils.map((oil) => ({
+            id: oil.id,
+            name: oil.name,
+            share: ((Number(oil.weight) || 0) / fragranceWeightByOil) * 100,
+            weight: Number(oil.weight) || 0,
+          })),
+        };
+
+        sessionStorage.setItem(transferKey, JSON.stringify(transfer));
+        window.location.href = "./";
+      }
+
+      function applyTransferIfPresent() {
+        if (pageMode !== "percent") return;
+        const rawTransfer = sessionStorage.getItem(transferKey);
+        if (!rawTransfer) return;
+        sessionStorage.removeItem(transferKey);
+
+        try {
+          const transfer = JSON.parse(rawTransfer);
+          activeMixtureId = null;
+          mixtureNameInput.value = transfer.name || "";
+          totalWeightInput.value = 100;
+          selectedFragrancePercent = Math.min(Math.max(Number(transfer.fragrancePercent) || 16, 15), 18);
+          fragrancePercentInput.value = selectedFragrancePercent;
+          defaultOils.forEach((defaultOil, index) => {
+            const transferredOil = (transfer.oils || []).find((oil) => oil.id === defaultOil.id) || defaultOil;
+            oils[index] = {
+              id: defaultOil.id,
+              name: transferredOil.name || "",
+              share: Number(transferredOil.share) || 0,
+              weight: Number(transferredOil.weight) || 0,
+            };
+          });
+          setStatus("Grammwerte wurden in Prozentwerte uebertragen.");
+        } catch (error) {
+          console.error(error);
+          setStatus("Uebertragung konnte nicht gelesen werden.");
+        }
+      }
+
+      configureMode();
+      applyTransferIfPresent();
       renderRows();
       renderSavedList();
-      configureMode();
       calculate();
       loadRemoteMixtures();
 
@@ -1125,6 +1195,7 @@
       });
 
       document.querySelector("#save-mixture").addEventListener("click", saveMixture);
+      transferButton.addEventListener("click", transferToPercentPage);
       document.querySelector("#new-mixture").addEventListener("click", newMixture);
 
       savedList.addEventListener("click", (event) => {
@@ -1151,6 +1222,10 @@
       function configureMode() {
         document.querySelector("#percent-page-link").classList.toggle("is-active", pageMode === "percent");
         document.querySelector("#weight-page-link").classList.toggle("is-active", pageMode === "weight");
+        mixTotalFields.hidden = pageMode === "weight";
+        resultPanel.hidden = pageMode === "weight";
+        savedPanel.hidden = pageMode === "weight";
+        transferButton.hidden = pageMode !== "weight";
         fragranceMainLabel.textContent = pageMode === "weight" ? "Duftoel gesamt in g" : "Duftoel gesamt in %";
         fragranceResultLabel.textContent = pageMode === "weight" ? "Duftoelanteil" : "Duftoel gesamt";
         totalWeightInput.value = "100";
