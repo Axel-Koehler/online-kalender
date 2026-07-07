@@ -32,7 +32,7 @@ jobs:
           mkdir -p _site/supabase
           cp supabase/*.sql _site/supabase/
           mkdir -p _site/duft-tresor
-          cp duft-tresor/*.html _site/duft-tresor/
+          cp duft-tresor/* _site/duft-tresor/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
