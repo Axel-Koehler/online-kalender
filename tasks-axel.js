@@ -1,13 +1,18 @@
 (() => {
-  const TASKS_TABLE = "axel_tasks";
-  const TASKS_VIEW_ID = "tasks-view";
-  const TASKS_TAB_ID = "tasks-axel-tab";
-  let tasksChannel = null;
-  let editingTaskId = null;
+  const TASK_PAGES = [
+    { key: "tasks", name: "Axel", table: "axel_tasks", tabId: "tasks-axel-tab", viewId: "tasks-view" },
+    { key: "tasks-uwe", name: "Uwe", table: "uwe_tasks", tabId: "tasks-uwe-tab", viewId: "tasks-uwe-view" },
+    { key: "tasks-kevin", name: "Kevin", table: "kevin_tasks", tabId: "tasks-kevin-tab", viewId: "tasks-kevin-view" },
+    { key: "tasks-holger", name: "Holger", table: "holger_tasks", tabId: "tasks-holger-tab", viewId: "tasks-holger-view" }
+  ];
+
+  const taskState = new Map(TASK_PAGES.map((page) => [page.key, { channel: null, editingId: null }]));
+  let activePage = TASK_PAGES[0];
 
   const style = document.createElement("style");
   style.textContent = `
     .tasks-view[hidden],
+    .tasks-page-tab[hidden],
     .tasks-axel-tab[hidden] {
       display: none !important;
     }
@@ -102,42 +107,73 @@
   `;
   document.head.append(style);
 
-  function ensureTasksTab() {
-    let tab = document.querySelector(`#${TASKS_TAB_ID}`);
+  function pageTitle(page) {
+    return `Aufgaben ${page.name}`;
+  }
+
+  function pageForView(view) {
+    return TASK_PAGES.find((page) => page.key === view) || null;
+  }
+
+  function isTaskView(view) {
+    return Boolean(pageForView(view));
+  }
+
+  function idFor(page, suffix) {
+    return `${page.key}-${suffix}`;
+  }
+
+  function ensureTasksTab(page) {
+    let tab = document.querySelector(`#${page.tabId}`);
     if (!tab) {
       tab = document.createElement("button");
-      tab.className = "tab-button tasks-axel-tab";
-      tab.id = TASKS_TAB_ID;
+      tab.id = page.tabId;
       tab.type = "button";
-      tab.dataset.view = "tasks";
-      tab.textContent = "Aufgaben Axel";
-      document.querySelector(".view-tabs")?.append(tab);
+      tab.dataset.view = page.key;
+      tab.textContent = pageTitle(page);
+      const nav = document.querySelector(".view-tabs");
+      const pageIndex = TASK_PAGES.findIndex((item) => item.key === page.key);
+      const previousTaskTab = pageIndex > 0 ? document.querySelector(`#${TASK_PAGES[pageIndex - 1].tabId}`) : null;
+      if (previousTaskTab?.parentElement === nav) {
+        previousTaskTab.after(tab);
+      } else {
+        nav?.append(tab);
+      }
     }
+
+    tab.classList.add("tab-button", "tasks-page-tab");
+    if (page.key === "tasks") tab.classList.add("tasks-axel-tab");
+    tab.dataset.view = page.key;
+    tab.textContent = pageTitle(page);
+    tab.hidden = false;
     return tab;
   }
 
-  function ensureTasksView() {
-    let view = document.querySelector(`#${TASKS_VIEW_ID}`);
+  function ensureTasksView(page) {
+    let view = document.querySelector(`#${page.viewId}`);
     if (!view) {
       view = document.createElement("section");
-      view.id = TASKS_VIEW_ID;
+      view.id = page.viewId;
       view.className = "calendar-view tasks-view";
-      view.setAttribute("aria-label", "Aufgaben Axel");
       view.hidden = true;
       document.querySelector(".calendar-stage")?.append(view);
     }
+
+    view.classList.add("calendar-view", "tasks-view");
+    view.setAttribute("aria-label", pageTitle(page));
     return view;
   }
 
-  function setTasksStatus(message) {
-    const status = document.querySelector("#tasks-status");
-    if (status) status.textContent = message || "";
+  function ensureTaskPages() {
+    TASK_PAGES.forEach((page) => {
+      ensureTasksTab(page);
+      ensureTasksView(page);
+    });
   }
 
-  function setActiveTasksTab(active) {
-    document.querySelectorAll(".tab-button").forEach((tab) => {
-      tab.classList.toggle("is-active", active ? tab.dataset.view === "tasks" : tab.dataset.view === state.view);
-    });
+  function setTasksStatus(page, message) {
+    const status = document.querySelector(`#${idFor(page, "status")}`);
+    if (status) status.textContent = message || "";
   }
 
   function hideOrdersView() {
@@ -147,26 +183,14 @@
     if (ordersTab) ordersTab.classList.remove("is-active");
   }
 
-  function showCalendarViews() {
-    document.querySelector("#week-view").hidden = state.view !== "week";
-    document.querySelector("#month-view").hidden = state.view !== "month";
-    document.querySelector("#year-view").hidden = state.view !== "year";
-    document.querySelector("#maintenance-view")?.setAttribute("hidden", "");
-    document.querySelector("#inquiries-view")?.setAttribute("hidden", "");
-    document.querySelector("#work-reports-view")?.setAttribute("hidden", "");
-    document.querySelector("#cooling-load-view")?.setAttribute("hidden", "");
-    document.querySelector("#cold-room-load-view")?.setAttribute("hidden", "");
-    document.querySelector("#maintenance-page-button")?.classList.remove("is-active");
-    document.querySelector("#inquiries-tab")?.classList.remove("is-active");
-    document.querySelector("#work-reports-tab")?.classList.remove("is-active");
-    document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
-    document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
-    ensureTasksView().hidden = true;
-    ensureTasksTab().classList.remove("is-active");
-    hideOrdersView();
+  function hideTaskPages() {
+    TASK_PAGES.forEach((page) => {
+      ensureTasksView(page).hidden = true;
+      ensureTasksTab(page).classList.remove("is-active");
+    });
   }
 
-  function showTasksView() {
+  function showTasksView(page) {
     document.querySelector("#week-view").hidden = true;
     document.querySelector("#month-view").hidden = true;
     document.querySelector("#year-view").hidden = true;
@@ -181,36 +205,39 @@
     document.querySelector("#cooling-load-tab")?.classList.remove("is-active");
     document.querySelector("#cold-room-load-tab")?.classList.remove("is-active");
     hideOrdersView();
-    ensureTasksView().hidden = false;
-    elements.rangeLabel.textContent = "Aufgaben Axel";
-    setActiveTasksTab(true);
+    TASK_PAGES.forEach((item) => {
+      ensureTasksView(item).hidden = item.key !== page.key;
+      ensureTasksTab(item).classList.toggle("is-active", item.key === page.key);
+    });
+    document.querySelectorAll(".tab-button.is-active").forEach((tab) => {
+      if (!TASK_PAGES.some((item) => item.tabId === tab.id)) tab.classList.remove("is-active");
+    });
+    elements.prevButton.hidden = true;
+    elements.nextButton.hidden = true;
+    elements.todayButton.hidden = true;
+    elements.newEventButton.hidden = true;
+    elements.rangeLabel.textContent = pageTitle(page);
   }
 
-  function updateVisibility() {
-    const tab = ensureTasksTab();
-    ensureTasksView();
-    tab.hidden = false;
-  }
-
-  function renderTasksShell() {
-    const view = ensureTasksView();
+  function renderTasksShell(page) {
+    const view = ensureTasksView(page);
     view.innerHTML = `
       <div class="tasks-shell">
-        <h2>Aufgaben Axel</h2>
+        <h2>${pageTitle(page)}</h2>
         <p class="tasks-subtitle">Eine Zeile eintragen, speichern und online auf allen Geräten wiederfinden.</p>
-        <form class="tasks-form" id="tasks-form">
-          <input id="task-input" type="text" autocomplete="off" placeholder="Neue Aufgabe eingeben" required>
-          <button class="primary-button" id="task-submit" type="submit">Speichern</button>
+        <form class="tasks-form" id="${idFor(page, "form")}">
+          <input id="${idFor(page, "input")}" type="text" autocomplete="off" placeholder="Neue Aufgabe eingeben" required>
+          <button class="primary-button" id="${idFor(page, "submit")}" type="submit">Speichern</button>
         </form>
-        <p class="tasks-status" id="tasks-status" role="status"></p>
-        <ul class="tasks-list" id="tasks-list"></ul>
+        <p class="tasks-status" id="${idFor(page, "status")}" role="status"></p>
+        <ul class="tasks-list" id="${idFor(page, "list")}"></ul>
       </div>
     `;
 
-    document.querySelector("#tasks-form")?.addEventListener("submit", saveTask);
+    document.querySelector(`#${idFor(page, "form")}`)?.addEventListener("submit", (event) => saveTask(event, page));
   }
 
-  function taskRow(task) {
+  function taskRow(page, task) {
     const item = document.createElement("li");
     item.className = "task-item";
     item.dataset.taskId = task.id;
@@ -224,132 +251,137 @@
     edit.type = "button";
     edit.textContent = "Bearbeiten";
     edit.addEventListener("click", () => {
-      editingTaskId = task.id;
-      document.querySelector("#task-input").value = task.body;
-      document.querySelector("#task-input").focus();
-      document.querySelector("#task-submit").textContent = "Aktualisieren";
+      taskState.get(page.key).editingId = task.id;
+      document.querySelector(`#${idFor(page, "input")}`).value = task.body;
+      document.querySelector(`#${idFor(page, "input")}`).focus();
+      document.querySelector(`#${idFor(page, "submit")}`).textContent = "Aktualisieren";
     });
 
     const remove = document.createElement("button");
     remove.className = "danger-button";
     remove.type = "button";
     remove.textContent = "Löschen";
-    remove.addEventListener("click", () => deleteTask(task.id));
+    remove.addEventListener("click", () => deleteTask(page, task.id));
 
     item.append(text, edit, remove);
     return item;
   }
 
-  async function loadTasks() {
+  async function loadTasks(page) {
     if (!useRemoteStorage()) return;
-    setTasksStatus("Lade Aufgaben...");
+    setTasksStatus(page, "Lade Aufgaben...");
     const { data, error } = await supabaseClient
-      .from(TASKS_TABLE)
+      .from(page.table)
       .select("id,body,created_at,updated_at")
       .order("body", { ascending: true });
 
     if (error) {
       console.error(error);
-      setTasksStatus("Aufgaben konnten nicht geladen werden. Prüfe, ob die Tabelle axel_tasks angelegt ist.");
+      setTasksStatus(page, `Aufgaben konnten nicht geladen werden. Prüfe, ob die Tabelle ${page.table} angelegt ist.`);
       return;
     }
 
     const sortedTasks = [...data].sort((left, right) => String(left.body).localeCompare(String(right.body), "de", { sensitivity: "base" }));
-    const list = document.querySelector("#tasks-list");
+    const list = document.querySelector(`#${idFor(page, "list")}`);
     if (!list) return;
-    list.replaceChildren(...sortedTasks.map(taskRow));
-    setTasksStatus(data.length ? `${data.length} Aufgaben online gespeichert` : "Noch keine Aufgaben vorhanden");
+    list.replaceChildren(...sortedTasks.map((task) => taskRow(page, task)));
+    setTasksStatus(page, data.length ? `${data.length} Aufgaben online gespeichert` : "Noch keine Aufgaben vorhanden");
   }
 
-  async function saveTask(event) {
+  async function saveTask(event, page) {
     event.preventDefault();
     if (!useRemoteStorage()) {
-      setTasksStatus("Bitte mit Supabase anmelden.");
+      setTasksStatus(page, "Bitte mit Supabase anmelden.");
       return;
     }
 
-    const input = document.querySelector("#task-input");
+    const pageState = taskState.get(page.key);
+    const input = document.querySelector(`#${idFor(page, "input")}`);
     const body = input.value.trim();
     if (!body) return;
 
-    setTasksStatus("Speichere...");
+    setTasksStatus(page, "Speichere...");
     const payload = { body, user_id: state.currentUser.id };
-    const request = editingTaskId
-      ? supabaseClient.from(TASKS_TABLE).update({ body }).eq("id", editingTaskId)
-      : supabaseClient.from(TASKS_TABLE).insert(payload);
+    const request = pageState.editingId
+      ? supabaseClient.from(page.table).update({ body }).eq("id", pageState.editingId)
+      : supabaseClient.from(page.table).insert(payload);
 
     const { error } = await request;
     if (error) {
       console.error(error);
-      setTasksStatus("Aufgabe konnte nicht gespeichert werden.");
+      setTasksStatus(page, "Aufgabe konnte nicht gespeichert werden.");
       return;
     }
 
-    editingTaskId = null;
+    pageState.editingId = null;
     input.value = "";
-    document.querySelector("#task-submit").textContent = "Speichern";
-    await loadTasks();
+    document.querySelector(`#${idFor(page, "submit")}`).textContent = "Speichern";
+    await loadTasks(page);
   }
 
-  async function deleteTask(id) {
+  async function deleteTask(page, id) {
     if (!confirm("Aufgabe löschen?")) return;
-    setTasksStatus("Lösche...");
-    const { error } = await supabaseClient.from(TASKS_TABLE).delete().eq("id", id);
+    setTasksStatus(page, "Lösche...");
+    const { error } = await supabaseClient.from(page.table).delete().eq("id", id);
     if (error) {
       console.error(error);
-      setTasksStatus("Aufgabe konnte nicht gelöscht werden.");
+      setTasksStatus(page, "Aufgabe konnte nicht gelöscht werden.");
       return;
     }
-    if (editingTaskId === id) editingTaskId = null;
-    await loadTasks();
+    const pageState = taskState.get(page.key);
+    if (pageState.editingId === id) pageState.editingId = null;
+    await loadTasks(page);
   }
 
-  function subscribeTasks() {
-    if (!useRemoteStorage() || tasksChannel) return;
-    tasksChannel = supabaseClient
-      .channel("axel_tasks_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: TASKS_TABLE }, () => {
-        if (state.view === "tasks") loadTasks();
+  function subscribeTasks(page) {
+    const pageState = taskState.get(page.key);
+    if (!useRemoteStorage() || pageState.channel) return;
+    pageState.channel = supabaseClient
+      .channel(`${page.table}_changes`)
+      .on("postgres_changes", { event: "*", schema: "public", table: page.table }, () => {
+        if (state.view === page.key) loadTasks(page);
       })
       .subscribe();
   }
 
-  function openTasks() {
+  function openTasks(page) {
     if (!elements.appShell || elements.appShell.hidden) return;
-    state.view = "tasks";
-    showTasksView();
-    renderTasksShell();
-    subscribeTasks();
-    loadTasks();
+    activePage = page;
+    state.view = page.key;
+    showTasksView(page);
+    renderTasksShell(page);
+    subscribeTasks(page);
+    loadTasks(page);
   }
 
   function wireTasks() {
-    const tab = ensureTasksTab();
-    ensureTasksView();
-    tab.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      openTasks();
-    }, true);
-
-    document.querySelectorAll('.tab-button:not(#tasks-axel-tab)').forEach((button) => {
-      button.addEventListener("click", () => {
-        setTimeout(() => {
-          if (state.view !== "tasks" && state.view !== "maintenance") showCalendarViews();
-        }, 0);
-      });
+    ensureTaskPages();
+    TASK_PAGES.forEach((page) => {
+      ensureTasksTab(page).addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openTasks(page);
+      }, true);
     });
+
+    document.addEventListener("click", (event) => {
+      const button = event.target?.closest?.(".tab-button");
+      if (!button || TASK_PAGES.some((page) => page.tabId === button.id)) return;
+      setTimeout(() => {
+        if (!isTaskView(state.view)) hideTaskPages();
+      }, 0);
+    }, true);
   }
 
   wireTasks();
-  updateVisibility();
 
   const originalRender = render;
   render = function patchedRender() {
-    const keepTasksOpen = state.view === "tasks";
+    const openPage = pageForView(state.view);
     originalRender();
-    if (keepTasksOpen) {
-      showTasksView();
+    if (openPage) {
+      activePage = openPage;
+      showTasksView(openPage);
     }
   };
 
@@ -357,23 +389,27 @@
   setAuthenticated = function patchedSetAuthenticated(authenticated) {
     originalSetAuthenticated(authenticated);
     setTimeout(() => {
-      updateVisibility();
-      subscribeTasks();
+      ensureTaskPages();
+      if (authenticated) TASK_PAGES.forEach(subscribeTasks);
     }, 0);
   };
 
   const originalLogout = logout;
   logout = async function patchedLogout() {
-    if (tasksChannel && supabaseClient) {
-      supabaseClient.removeChannel(tasksChannel);
-      tasksChannel = null;
-    }
+    TASK_PAGES.forEach((page) => {
+      const pageState = taskState.get(page.key);
+      if (pageState.channel && supabaseClient) {
+        supabaseClient.removeChannel(pageState.channel);
+        pageState.channel = null;
+      }
+    });
     await originalLogout();
-    updateVisibility();
+    hideTaskPages();
   };
 
   window.addEventListener("focus", () => {
-    updateVisibility();
-    if (state.view === "tasks") loadTasks();
+    ensureTaskPages();
+    const openPage = pageForView(state.view) || activePage;
+    if (state.view === openPage.key) loadTasks(openPage);
   });
 })();
