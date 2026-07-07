@@ -126,12 +126,13 @@
         gap: 13px;
       }
 
-      .brand-mark {
-        width: 44px;
-        height: 44px;
+      .brand-logo {
+        width: 54px;
+        height: 54px;
         flex: 0 0 auto;
-        clip-path: polygon(50% 0, 100% 27%, 100% 73%, 50% 100%, 0 73%, 0 27%);
-        background: linear-gradient(135deg, var(--yellow), var(--orange) 24%, var(--magenta) 58%, var(--cyan));
+        object-fit: contain;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.96);
         box-shadow: 0 0 20px rgba(0, 217, 255, 0.46), 0 0 26px rgba(255, 45, 253, 0.28);
       }
 
@@ -378,8 +379,7 @@
         align-content: start;
       }
 
-      .result-card,
-      .balance-note {
+      .result-card {
         display: grid;
         gap: 8px;
         padding: 16px;
@@ -388,16 +388,14 @@
         box-shadow: inset 0 0 18px rgba(0, 217, 255, 0.08);
       }
 
-      .result-card span,
-      .balance-note span {
+      .result-card span {
         color: var(--cyan);
         font-size: 0.76rem;
         text-transform: uppercase;
         text-shadow: 0 0 10px rgba(0, 217, 255, 0.58);
       }
 
-      .result-card strong,
-      .balance-note strong {
+      .result-card strong {
         color: var(--text);
         font-size: clamp(1.65rem, 4vw, 2.35rem);
         line-height: 1;
@@ -407,21 +405,6 @@
       .primary-result strong {
         color: var(--yellow);
         text-shadow: 0 0 16px rgba(248, 255, 19, 0.44);
-      }
-
-      .balance-note p {
-        color: var(--muted);
-        font-size: 0.88rem;
-        line-height: 1.4;
-      }
-
-      .balance-note.is-warning {
-        border-color: rgba(255, 61, 110, 0.72);
-        box-shadow: inset 0 0 18px rgba(255, 61, 110, 0.1);
-      }
-
-      .balance-note.is-warning strong {
-        color: var(--rose);
       }
 
       .saved-panel {
@@ -548,7 +531,7 @@
       }
 
       @media (max-width: 620px) {
-        .brand-mark {
+        .brand-logo {
           width: 36px;
           height: 36px;
         }
@@ -598,7 +581,7 @@
     <main class="app-shell">
       <header class="topbar">
         <div class="brand-block">
-          <div class="brand-mark" aria-hidden="true"></div>
+          <img class="brand-logo" src="logo.png" alt="Duft Tresor Logo">
           <div>
             <h1>Duft Tresor - Mischungsrechner</h1>
             <p class="range-label">Wachs und bis zu 5 Duftoele in Gramm berechnen</p>
@@ -612,10 +595,7 @@
           <button class="tab-button" data-percent="18" type="button">18%</button>
         </div>
 
-        <div class="toolbar">
-          <a class="nav-link is-active" id="percent-page-link" href="./">Prozent</a>
-          <a class="nav-link" id="weight-page-link" href="gewicht.html">Gramm</a>
-        </div>
+        <div class="toolbar"></div>
       </header>
 
       <section class="calculator-stage">
@@ -632,7 +612,6 @@
                 <input id="mixture-name" maxlength="46" placeholder="z. B. Amber Vanille 16%" type="text">
               </label>
               <button class="primary-button" id="save-mixture" type="button">Speichern</button>
-              <button class="primary-button" id="transfer-to-percent" type="button" hidden>&Uuml;bertragen</button>
               <button class="text-button" id="new-mixture" type="button">Neu</button>
             </div>
             <p class="save-status" id="save-status" role="status"></p>
@@ -675,11 +654,6 @@
               <strong id="finished-result">0,0 g</strong>
             </div>
 
-            <div class="balance-note" id="balance-note">
-              <span>Oelanteile</span>
-              <strong id="share-result">0,0%</strong>
-              <p id="balance-text">Die Duftoele sollten zusammen 100% ergeben.</p>
-            </div>
           </aside>
 
           <section class="saved-panel" aria-label="Gespeicherte Mischungen">
@@ -697,7 +671,7 @@
       const TABLE = "duft_tresor_mixtures";
       const storageKey = "duft-tresor-mixtures-v1";
       const transferKey = "duft-tresor-transfer-v1";
-      const pageMode = window.location.hash === "#gewicht" ? "weight" : "percent";
+      const pageMode = "percent";
       let selectedFragrancePercent = 16;
       const defaultOils = [
         { id: 1, name: "Duftoel 1", share: 0, weight: 0 },
@@ -726,7 +700,6 @@
       const oilInputHead = document.querySelector("#oil-input-head");
       const oilOutputHead = document.querySelector("#oil-output-head");
       const mixTotalFields = document.querySelector("#mix-total-fields");
-      const transferButton = document.querySelector("#transfer-to-percent");
       const oilRows = document.querySelector("#oil-rows");
       const savedList = document.querySelector("#saved-list");
       const savedPanel = document.querySelector(".saved-panel");
@@ -736,9 +709,6 @@
       const waxResult = document.querySelector("#wax-result");
       const fragranceResult = document.querySelector("#fragrance-result");
       const finishedResult = document.querySelector("#finished-result");
-      const shareResult = document.querySelector("#share-result");
-      const balanceNote = document.querySelector("#balance-note");
-      const balanceText = document.querySelector("#balance-text");
 
       function formatGram(value) {
         return `${formatter.format(Number.isFinite(value) ? value : 0)} g`;
@@ -931,7 +901,7 @@
             <article class="saved-item ${mixture.id === activeMixtureId ? "is-active" : ""}">
               <div class="saved-info">
                 <strong>${escapeHtml(mixture.name)}</strong>
-                <span>${mixture.mode === "weight" ? "Gramm-Rechner" : "Prozent-Rechner"} - ${formatGram(mixture.totalWeight)} - ${formatter.format(mixture.fragrancePercent)}% Duftoel</span>
+                <span>Prozent-Rechner - ${formatGram(mixture.totalWeight)} - ${formatter.format(mixture.fragrancePercent)}% Duftoel</span>
               </div>
               <div class="saved-actions">
                 <button class="text-button" data-action="load" data-id="${mixture.id}" type="button">Bearbeiten</button>
@@ -975,16 +945,6 @@
         waxResult.textContent = formatGram(waxWeight);
         fragranceResult.textContent = pageMode === "weight" ? formatPercent(fragrancePercent) : formatGram(fragranceWeight);
         finishedResult.textContent = formatGram(totalWeight);
-        shareResult.textContent = pageMode === "weight" ? formatGram(shareTotal) : formatPercent(shareTotal);
-        balanceNote.classList.toggle("is-warning", !balanced);
-        balanceText.textContent = pageMode === "weight"
-          ? balanced
-            ? `Die Oelgewichte werden auf ${formatter.format(fragrancePercent)}% Duftoel bei 100 g fertiger Mischung umgerechnet.`
-            : "Bitte mindestens ein Oelgewicht eingeben."
-          : balanced
-            ? "Die Duftoele ergeben zusammen 100%."
-            : "Die Duftoele sollten zusammen 100% ergeben.";
-
         oils.forEach((oil) => {
           const output = document.querySelector(`#oil-output-${oil.id}`);
           if (output) {
@@ -1127,29 +1087,6 @@
         setStatus("Neue Mischung angelegt.");
       }
 
-      function transferToPercentPage() {
-        const { fragrancePercent, fragranceWeightByOil } = getTotals();
-        if (fragranceWeightByOil <= 0) {
-          setStatus("Bitte zuerst mindestens ein Oelgewicht eingeben.");
-          return;
-        }
-
-        const transfer = {
-          name: mixtureNameInput.value.trim(),
-          fragrancePercent,
-          oils: oils.map((oil) => ({
-            id: oil.id,
-            name: oil.name,
-            share: ((Number(oil.weight) || 0) / fragranceWeightByOil) * 100,
-            weight: Number(oil.weight) || 0,
-          })),
-          keepGramValues: true,
-        };
-
-        sessionStorage.setItem(transferKey, JSON.stringify(transfer));
-        window.location.href = "./";
-      }
-
       function applyTransferIfPresent() {
         if (pageMode !== "percent") return;
         const rawTransfer = sessionStorage.getItem(transferKey);
@@ -1211,7 +1148,6 @@
       });
 
       document.querySelector("#save-mixture").addEventListener("click", saveMixture);
-      transferButton.addEventListener("click", transferToPercentPage);
       document.querySelector("#new-mixture").addEventListener("click", newMixture);
 
       savedList.addEventListener("click", (event) => {
@@ -1239,12 +1175,10 @@
       });
 
       function configureMode() {
-        document.querySelector("#percent-page-link").classList.toggle("is-active", pageMode === "percent");
-        document.querySelector("#weight-page-link").classList.toggle("is-active", pageMode === "weight");
+        document.querySelector("#percent-page-link")?.classList.toggle("is-active", pageMode === "percent");
         mixTotalFields.hidden = pageMode === "weight";
         resultPanel.hidden = pageMode === "weight";
         savedPanel.hidden = pageMode === "weight";
-        transferButton.hidden = pageMode !== "weight";
         mixtureNameLabel.textContent = pageMode === "weight" ? "Name der Mischung" : "Inhalt der Mischung";
         oilInputHead.textContent = pageMode === "weight" ? "Gramm Duftoel" : "Anteil";
         oilOutputHead.textContent = pageMode === "weight" ? "Prozent" : "Gramm";
@@ -1256,7 +1190,7 @@
         fragrancePercentInput.max = pageMode === "weight" ? "" : "18";
         fragrancePercentInput.readOnly = pageMode === "weight";
         fragrancePercentInput.value = pageMode === "weight" ? (100 * (selectedFragrancePercent / 100)).toFixed(1) : "16";
-        document.querySelector(".status-chip").textContent = pageMode === "weight" ? "Gramm zu Prozent" : "15-18% Duftoel";
+        document.querySelector(".status-chip").textContent = "15-18% Duftoel";
       }
     </script>
   </body>
