@@ -1,6 +1,7 @@
 (() => {
   const TASK_PAGES = [
     { key: "tasks", name: "Axel", table: "axel_tasks", tabId: "tasks-axel-tab", viewId: "tasks-view" },
+    { key: "tasks-orders", name: "Aufträge", title: "Aufträge", table: "orders_tasks", tabId: "tasks-orders-tab", viewId: "tasks-orders-view" },
     { key: "tasks-uwe", name: "Uwe", table: "uwe_tasks", tabId: "tasks-uwe-tab", viewId: "tasks-uwe-view" },
     { key: "tasks-kevin", name: "Kevin", table: "kevin_tasks", tabId: "tasks-kevin-tab", viewId: "tasks-kevin-view" },
     { key: "tasks-holger", name: "Holger", table: "holger_tasks", tabId: "tasks-holger-tab", viewId: "tasks-holger-view" }
@@ -108,7 +109,7 @@
   document.head.append(style);
 
   function pageTitle(page) {
-    return `Aufgaben ${page.name}`;
+    return page.title || `Aufgaben ${page.name}`;
   }
 
   function pageForView(view) {
