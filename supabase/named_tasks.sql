@@ -10,9 +10,17 @@ create table if not exists public.orders_tasks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   body text not null,
+  order_date date,
+  system_type text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.orders_tasks
+add column if not exists order_date date;
+
+alter table public.orders_tasks
+add column if not exists system_type text not null default '';
 
 create table if not exists public.kevin_tasks (
   id uuid primary key default gen_random_uuid(),

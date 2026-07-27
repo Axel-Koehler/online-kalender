@@ -50,6 +50,10 @@
       margin-top: 22px;
     }
 
+    .tasks-form.is-orders-form {
+      grid-template-columns: minmax(150px, 0.7fr) minmax(170px, 0.9fr) minmax(220px, 1.4fr) auto;
+    }
+
     .tasks-form input {
       height: var(--field-height, 44px);
       min-height: var(--field-height, 44px);
@@ -85,6 +89,20 @@
       overflow-wrap: anywhere;
     }
 
+    .task-content {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
     .tasks-status {
       min-height: 20px;
       margin-top: 14px;
@@ -101,6 +119,7 @@
 
     @media (max-width: 620px) {
       .tasks-form,
+      .tasks-form.is-orders-form,
       .task-item {
         grid-template-columns: 1fr;
       }
@@ -122,6 +141,16 @@
 
   function idFor(page, suffix) {
     return `${page.key}-${suffix}`;
+  }
+
+  function isOrdersPage(page) {
+    return page.key === "tasks-orders";
+  }
+
+  function formatTaskDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return "";
+    const [year, month, day] = value.split("-");
+    return `${day}.${month}.${year}`;
   }
 
   function ensureTasksTab(page) {
@@ -226,7 +255,11 @@
       <div class="tasks-shell">
         <h2>${pageTitle(page)}</h2>
         <p class="tasks-subtitle">Eine Zeile eintragen, speichern und online auf allen Geräten wiederfinden.</p>
-        <form class="tasks-form" id="${idFor(page, "form")}">
+        <form class="tasks-form${isOrdersPage(page) ? " is-orders-form" : ""}" id="${idFor(page, "form")}">
+          ${isOrdersPage(page) ? `
+            <input id="${idFor(page, "date")}" type="date" autocomplete="off" aria-label="Datum">
+            <input id="${idFor(page, "system-type")}" type="text" autocomplete="off" placeholder="Anlagen Typ">
+          ` : ""}
           <input id="${idFor(page, "input")}" type="text" autocomplete="off" placeholder="Neue Aufgabe eingeben" required>
           <button class="primary-button" id="${idFor(page, "submit")}" type="submit">Speichern</button>
         </form>
@@ -243,9 +276,20 @@
     item.className = "task-item";
     item.dataset.taskId = task.id;
 
+    const content = document.createElement("span");
+    content.className = "task-content";
+
     const text = document.createElement("span");
     text.className = "task-text";
     text.textContent = task.body;
+    content.append(text);
+
+    if (isOrdersPage(page)) {
+      const meta = document.createElement("span");
+      meta.className = "task-meta";
+      meta.textContent = [formatTaskDate(task.order_date), String(task.system_type || "").trim()].filter(Boolean).join(" | ");
+      if (meta.textContent) content.prepend(meta);
+    }
 
     const edit = document.createElement("button");
     edit.className = "text-button";
@@ -254,6 +298,10 @@
     edit.addEventListener("click", () => {
       taskState.get(page.key).editingId = task.id;
       document.querySelector(`#${idFor(page, "input")}`).value = task.body;
+      if (isOrdersPage(page)) {
+        document.querySelector(`#${idFor(page, "date")}`).value = task.order_date || "";
+        document.querySelector(`#${idFor(page, "system-type")}`).value = task.system_type || "";
+      }
       document.querySelector(`#${idFor(page, "input")}`).focus();
       document.querySelector(`#${idFor(page, "submit")}`).textContent = "Aktualisieren";
     });
@@ -264,17 +312,18 @@
     remove.textContent = "Löschen";
     remove.addEventListener("click", () => deleteTask(page, task.id));
 
-    item.append(text, edit, remove);
+    item.append(content, edit, remove);
     return item;
   }
 
   async function loadTasks(page) {
     if (!useRemoteStorage()) return;
     setTasksStatus(page, "Lade Aufgaben...");
+    const columns = isOrdersPage(page) ? "id,body,order_date,system_type,created_at,updated_at" : "id,body,created_at,updated_at";
     const { data, error } = await supabaseClient
       .from(page.table)
-      .select("id,body,created_at,updated_at")
-      .order("body", { ascending: true });
+      .select(columns)
+      .order(isOrdersPage(page) ? "order_date" : "body", { ascending: true, nullsFirst: false });
 
     if (error) {
       console.error(error);
@@ -282,7 +331,12 @@
       return;
     }
 
-    const sortedTasks = [...data].sort((left, right) => String(left.body).localeCompare(String(right.body), "de", { sensitivity: "base" }));
+    const sortedTasks = [...data].sort((left, right) => {
+      if (isOrdersPage(page)) {
+        return `${left.order_date || "9999-12-31"} ${left.system_type || ""} ${left.body || ""}`.localeCompare(`${right.order_date || "9999-12-31"} ${right.system_type || ""} ${right.body || ""}`, "de", { sensitivity: "base" });
+      }
+      return String(left.body).localeCompare(String(right.body), "de", { sensitivity: "base" });
+    });
     const list = document.querySelector(`#${idFor(page, "list")}`);
     if (!list) return;
     list.replaceChildren(...sortedTasks.map((task) => taskRow(page, task)));
@@ -303,8 +357,12 @@
 
     setTasksStatus(page, "Speichere...");
     const payload = { body, user_id: state.currentUser.id };
+    if (isOrdersPage(page)) {
+      payload.order_date = document.querySelector(`#${idFor(page, "date")}`).value || null;
+      payload.system_type = document.querySelector(`#${idFor(page, "system-type")}`).value.trim();
+    }
     const request = pageState.editingId
-      ? supabaseClient.from(page.table).update({ body }).eq("id", pageState.editingId)
+      ? supabaseClient.from(page.table).update(isOrdersPage(page) ? { body, order_date: payload.order_date, system_type: payload.system_type } : { body }).eq("id", pageState.editingId)
       : supabaseClient.from(page.table).insert(payload);
 
     const { error } = await request;
@@ -316,6 +374,10 @@
 
     pageState.editingId = null;
     input.value = "";
+    if (isOrdersPage(page)) {
+      document.querySelector(`#${idFor(page, "date")}`).value = "";
+      document.querySelector(`#${idFor(page, "system-type")}`).value = "";
+    }
     document.querySelector(`#${idFor(page, "submit")}`).textContent = "Speichern";
     await loadTasks(page);
   }
