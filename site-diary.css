@@ -22,6 +22,9 @@
 .diary-status { min-height: 24px; margin: 8px 0; color: var(--cyan); white-space: pre-wrap; }
 .diary-filters { display: grid; grid-template-columns: minmax(160px, 2fr) repeat(3, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .diary-table-wrap { width: 100%; overflow-x: auto; }
+.diary-project-group { padding: 12px 0 20px; border-top: 1px solid var(--line-strong); }
+.diary-project-group h3, .diary-project-group p { overflow-wrap: anywhere; }
+.diary-project-group p { color: var(--muted); font-size: .85rem; line-height: 1.5; }
 .diary-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .diary-table th, .diary-table td { text-align: left; vertical-align: top; padding: 12px 8px; overflow-wrap: anywhere; border-bottom: 1px solid var(--line-strong); }
 .diary-table th { color: var(--cyan); background: rgba(0,217,255,.04); }

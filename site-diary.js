@@ -18,7 +18,7 @@
 
   const css = document.createElement("link");
   css.rel = "stylesheet";
-  css.href = "site-diary.css?v=20261031-1";
+  css.href = "site-diary.css?v=20261031-2";
   document.head.append(css);
   const tab = document.createElement("button");
   tab.id = "site-diary-tab";
@@ -41,9 +41,11 @@
     <form id="diary-form">
       <div class="section-header"><h2>Bautagebuch</h2></div>
       <input id="diary-id" type="hidden">
+      <input id="diary-project-id" type="hidden">
       <div class="diary-grid">
+        <label class="field diary-wide"><span>Baustelle auswählen</span><select id="diary-project-choice"><option value="">Neue Baustelle</option></select></label>
         ${field("project", TEXT_FIELDS.project, "text", true)}
-        ${field("entry_date", "Datum", "date", true)}
+        ${field("entry_date", "Arbeitstag", "date", true)}
         ${field("editor", TEXT_FIELDS.editor)}
         ${field("address", TEXT_FIELDS.address)}
         ${field("start_time", "Arbeitszeit von", "time")}
@@ -113,10 +115,14 @@
     $("materials").append(row);
   }
   function readForm() {
-    const record = { id: $("id").value || crypto.randomUUID(), status: $("status").value };
+    const record = { id: $("id").value || crypto.randomUUID(), project_id: $("project-id").value, status: $("status").value };
     [...Object.keys(TEXT_FIELDS), "entry_date", "start_time", "end_time"].forEach((key) => { record[key] = $(key).value.trim(); });
     record.start_time ||= null;
     record.end_time ||= null;
+    if (!$("id").value && !$("project-choice").value) {
+      const existing = records.find((r) => r.project.trim().toLocaleLowerCase("de") === record.project.toLocaleLowerCase("de") && (r.address || "").trim().toLocaleLowerCase("de") === record.address.toLocaleLowerCase("de"));
+      if (existing) record.project_id = existing.project_id || existing.id;
+    }
     record.materials = [...$("materials").children].map((row) => ({ qty: row.querySelector(".diary-qty").value.trim(), name: row.querySelector(".diary-name").value.trim() })).filter((m) => m.qty || m.name);
     return record;
   }
@@ -124,6 +130,8 @@
     if (busy) return;
     $("form").reset();
     $("id").value = "";
+    $("project-id").value = crypto.randomUUID();
+    $("project-choice").value = "";
     $("entry_date").value = today();
     photos = [];
     originalPhotos = [];
@@ -132,6 +140,41 @@
     renderPhotos();
     message("");
     $("save").textContent = "Speichern";
+  }
+
+  function projectGroups(source = records) {
+    const groups = new Map();
+    [...source].sort((a, b) => b.entry_date.localeCompare(a.entry_date) || (b.created_at || "").localeCompare(a.created_at || "")).forEach((record) => {
+      const id = record.project_id || record.id;
+      if (!groups.has(id)) groups.set(id, []);
+      groups.get(id).push(record);
+    });
+    return groups;
+  }
+  function refreshProjectChoices() {
+    const selected = $("project-id").value;
+    $("project-choice").replaceChildren(new Option("Neue Baustelle", ""));
+    [...projectGroups()].sort((a, b) => a[1][0].project.localeCompare(b[1][0].project, "de")).forEach(([id, days]) => {
+      const latest = days[0];
+      $("project-choice").add(new Option([latest.project, latest.address].filter(Boolean).join(" · "), id));
+    });
+    $("project-choice").value = projectGroups().has(selected) ? selected : "";
+  }
+  function addWorkday(projectId) {
+    if (busy) return;
+    const days = projectGroups().get(projectId);
+    if (!days) { reset(); return; }
+    const latest = days[0];
+    reset();
+    $("project-id").value = projectId;
+    $("project-choice").value = projectId;
+    ["project", "address", "system_type"].forEach((key) => { $(key).value = latest[key] || ""; });
+    const next = fromDateKey(latest.entry_date);
+    next.setDate(next.getDate() + 1);
+    $("entry_date").value = dateKey(next);
+    $("detail").hidden = true;
+    $("form").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("entry_date").focus({ preventScroll: true });
   }
 
   async function photoUrl(photo) {
@@ -264,6 +307,8 @@
   function edit(record) {
     if (busy) return;
     $("id").value = record.id;
+    $("project-id").value = record.project_id || record.id;
+    $("project-choice").value = record.project_id || record.id;
     [...Object.keys(TEXT_FIELDS), "entry_date", "start_time", "end_time", "status"].forEach((key) => { $(key).value = (record[key] || "").toString().slice(0, ["start_time", "end_time"].includes(key) ? 5 : undefined); });
     photos = (record.photos || []).map((p) => ({ ...p }));
     originalPhotos = [...photos];
@@ -294,9 +339,29 @@
     finally { setBusy(false); }
   }
   function renderList() {
+    refreshProjectChoices();
     const query = $("search").value.trim().toLocaleLowerCase("de");
     const shown = records.filter((r) => (!query || [...Object.keys(TEXT_FIELDS), "status"].some((key) => (r[key] || "").toLocaleLowerCase("de").includes(query))) && (!$("from").value || r.entry_date >= $("from").value) && (!$("to").value || r.entry_date <= $("to").value) && (!$("filter-status").value || r.status === $("filter-status").value)).sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-    $("list-message").textContent = shown.length ? `${shown.length} Einträge` : "Keine Einträge gefunden.";
+    $("list-message").textContent = shown.length ? `${projectGroups(shown).size} Baustellen · ${shown.length} Einträge` : "Keine Einträge gefunden.";
+    const sections = [];
+    projectGroups(shown).forEach((days, id) => {
+      const section = document.createElement("section");
+      section.className = "diary-project-group";
+      section.dataset.projectId = id;
+      const heading = document.createElement("h3");
+      heading.textContent = days[0].project;
+      const info = document.createElement("p");
+      const count = new Set(days.map((d) => d.entry_date)).size;
+      info.textContent = [days[0].address, `${count} ${count === 1 ? "Arbeitstag" : "Arbeitstage"}`, `${dateLabel(days.at(-1).entry_date)} – ${dateLabel(days[0].entry_date)}`].filter(Boolean).join(" · ");
+      const actions = document.createElement("div");
+      actions.className = "diary-actions";
+      actions.append(button("Arbeitstag hinzufügen", () => addWorkday(id)));
+      section.append(heading, info, actions, dayTable([...days].reverse()));
+      sections.push(section);
+    });
+    $("list").replaceChildren(...sections);
+  }
+  function dayTable(shown) {
     const table = document.createElement("table");
     table.className = "diary-table";
     const labels = ["Datum", "Baustelle / Projekt", "Bearbeiter", "Status", "Arbeiten", "Aktionen"];
@@ -321,7 +386,7 @@
       row.append(td);
       table.tBodies[0].append(row);
     });
-    $("list").replaceChildren(table);
+    return table;
   }
   function detail(record) {
     const target = $("detail");
@@ -456,6 +521,7 @@
     await previousLogout();
   };
   $("form").addEventListener("submit", save);
+  $("project-choice").addEventListener("change", () => { const id = $("project-choice").value; if (id) addWorkday(id); else reset(); });
   $("reset").addEventListener("click", reset);
   $("add-material").addEventListener("click", () => addMaterial());
   $("upload").addEventListener("change", addPhotos);

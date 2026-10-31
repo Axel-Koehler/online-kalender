@@ -1,6 +1,7 @@
 begin;
 create table if not exists public.site_diary (
   id uuid primary key default gen_random_uuid(),
+  project_id uuid not null default gen_random_uuid(),
   project text not null check (length(trim(project)) > 0),
   entry_date date not null,
   address text not null default '',
